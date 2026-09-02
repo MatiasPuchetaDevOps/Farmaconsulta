@@ -1,0 +1,18 @@
+# Python (proyecto original + backend)
+__pycache__/
+*.pyc
+.venv/
+.venv_check/
+*.db
+
+# Entornos
+.env
+!.env.example
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Office temp/lock files
+~$*.docx
+~$*.xlsx
