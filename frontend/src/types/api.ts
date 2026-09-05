@@ -1,8 +1,54 @@
 export interface Producto {
+  id: number
   producto_nombre: string
   categoria: string
   precio_lista: number
   stock_disponible: number
+  droga_generica: string | null
+  requiere_receta: boolean
+  activo: boolean
+}
+
+export interface ProductoIn {
+  producto_nombre: string
+  categoria: string
+  precio_lista: number
+  stock_disponible: number
+  droga_generica: string | null
+  requiere_receta: boolean
+  activo: boolean
+}
+
+export interface Cliente {
+  id: number
+  nombre: string
+  telefono: string | null
+  activo: boolean
+}
+
+export interface ClienteIn {
+  nombre: string
+  telefono: string | null
+  activo: boolean
+}
+
+export interface UsuarioAdmin {
+  id: number
+  username: string
+  nombre_completo: string | null
+  activo: boolean
+}
+
+export interface UsuarioCrear {
+  username: string
+  password: string
+  nombre_completo: string | null
+}
+
+export interface UsuarioEditar {
+  nombre_completo?: string | null
+  activo?: boolean
+  password?: string | null
 }
 
 export interface Desglose {
@@ -40,6 +86,7 @@ export interface StockInfo {
 }
 
 export interface Plan {
+  id: number
   obra_social: string
   descuento_os: number
   actualizado_en: string
@@ -50,12 +97,8 @@ export interface ConsultaIn {
   cliente_tel: string
   obra_social: string
   plan_afiliado: string
-  producto_nombre: string
-  categoria: string
-  precio_lista: number
-  stock_disponible: number
+  producto_id: number
   metodo_pago: string
-  requiere_receta: boolean
   fecha: string
 }
 

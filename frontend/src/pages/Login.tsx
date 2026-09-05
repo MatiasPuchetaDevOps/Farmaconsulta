@@ -1,3 +1,5 @@
+import { Alert, Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { IconAlertCircle, IconLock } from '@tabler/icons-react'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -25,22 +27,39 @@ export function Login() {
   }
 
   return (
-    <div className="pagina-login">
-      <form className="tarjeta form-login" onSubmit={onSubmit}>
-        <h1>Acceso personal de farmacia</h1>
-        <label>
-          Usuario
-          <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-        </label>
-        <label>
-          Contraseña
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
-        {error && <p className="mensaje-error">{error}</p>}
-        <button type="submit" disabled={enviando}>
-          {enviando ? 'Ingresando...' : 'Ingresar'}
-        </button>
-      </form>
-    </div>
+    <Center mih="100svh" bg="var(--mantine-color-gray-0)">
+      <Paper withBorder shadow="sm" radius="lg" p="xl" w={360}>
+        <Stack align="center" gap={4} mb="lg">
+          <Text fz={40}>💊</Text>
+          <Title order={2} ta="center">
+            Acceso personal de farmacia
+          </Title>
+          <Text c="dimmed" size="sm" ta="center">
+            Ingresá con tu usuario para ver análisis y administración.
+          </Text>
+        </Stack>
+
+        <form onSubmit={onSubmit}>
+          <Stack gap="md">
+            <TextInput label="Usuario" value={username} onChange={(e) => setUsername(e.currentTarget.value)} autoFocus required />
+            <PasswordInput
+              label="Contraseña"
+              leftSection={<IconLock size={16} />}
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
+              required
+            />
+            {error && (
+              <Alert color="red" icon={<IconAlertCircle size={16} />} variant="light">
+                {error}
+              </Alert>
+            )}
+            <Button type="submit" loading={enviando} fullWidth>
+              Ingresar
+            </Button>
+          </Stack>
+        </form>
+      </Paper>
+    </Center>
   )
 }

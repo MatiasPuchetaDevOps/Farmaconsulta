@@ -1,3 +1,5 @@
+import { AppShell, Anchor, Button, Container, Group, Tabs, Text, Title } from '@mantine/core'
+import { IconChartBar, IconLogout, IconSearch, IconSettings } from '@tabler/icons-react'
 import { useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { Administracion } from './pages/Administracion'
@@ -15,42 +17,60 @@ function PaginaPrincipal() {
   if (cargando) return null
 
   return (
-    <div className="app-shell">
-      <header className="encabezado">
-        <h1>💊 FarmaConsulta</h1>
-        {usuario ? (
-          <div className="sesion-info">
-            <span>Sesión iniciada: {usuario.nombre_completo ?? usuario.username}</span>
-            <button onClick={logout}>Cerrar sesión</button>
-          </div>
-        ) : (
-          <Link className="link-personal" to="/login">
-            Acceso personal de farmacia
-          </Link>
-        )}
-      </header>
+    <AppShell header={{ height: 64 }} padding="md">
+      <AppShell.Header>
+        <Container size="lg" h="100%">
+          <Group h="100%" justify="space-between" wrap="nowrap">
+            <Group gap="xs">
+              <Text fz={26}>💊</Text>
+              <Title order={3} fw={700}>
+                FarmaConsulta
+              </Title>
+            </Group>
 
-      {usuario && (
-        <nav className="tabs">
-          <button className={pestaña === 'consulta' ? 'tab activo' : 'tab'} onClick={() => setPestaña('consulta')}>
-            Consulta de precio
-          </button>
-          <button className={pestaña === 'analisis' ? 'tab activo' : 'tab'} onClick={() => setPestaña('analisis')}>
-            Análisis exploratorio
-          </button>
-          <button className={pestaña === 'administracion' ? 'tab activo' : 'tab'} onClick={() => setPestaña('administracion')}>
-            Administración
-          </button>
-        </nav>
-      )}
+            {usuario ? (
+              <Group gap="md" wrap="nowrap">
+                <Text size="sm" c="dimmed" visibleFrom="xs">
+                  Sesión iniciada: <Text span fw={600} c="var(--mantine-color-text)">{usuario.nombre_completo ?? usuario.username}</Text>
+                </Text>
+                <Button variant="subtle" color="gray" size="sm" leftSection={<IconLogout size={16} />} onClick={logout}>
+                  Cerrar sesión
+                </Button>
+              </Group>
+            ) : (
+              <Anchor component={Link} to="/login" size="sm" c="dimmed">
+                Acceso personal de farmacia
+              </Anchor>
+            )}
+          </Group>
+        </Container>
+      </AppShell.Header>
 
-      <main>
-        {!usuario && <ConsultaPrecio />}
-        {usuario && pestaña === 'consulta' && <ConsultaPrecio />}
-        {usuario && pestaña === 'analisis' && <AnalisisExploratorio />}
-        {usuario && pestaña === 'administracion' && <Administracion />}
-      </main>
-    </div>
+      <AppShell.Main>
+        <Container size="lg">
+          {usuario && (
+            <Tabs value={pestaña} onChange={(v) => setPestaña((v as Pestaña) ?? 'consulta')} mb="lg">
+              <Tabs.List>
+                <Tabs.Tab value="consulta" leftSection={<IconSearch size={16} />}>
+                  Consulta de precio
+                </Tabs.Tab>
+                <Tabs.Tab value="analisis" leftSection={<IconChartBar size={16} />}>
+                  Análisis exploratorio
+                </Tabs.Tab>
+                <Tabs.Tab value="administracion" leftSection={<IconSettings size={16} />}>
+                  Administración
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs>
+          )}
+
+          {!usuario && <ConsultaPrecio />}
+          {usuario && pestaña === 'consulta' && <ConsultaPrecio />}
+          {usuario && pestaña === 'analisis' && <AnalisisExploratorio />}
+          {usuario && pestaña === 'administracion' && <Administracion />}
+        </Container>
+      </AppShell.Main>
+    </AppShell>
   )
 }
 

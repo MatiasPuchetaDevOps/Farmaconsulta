@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import Engine
+from sqlalchemy.orm import Session
 
-from app.database import engine
+from app.database import engine, get_db
+from app.models import Producto
 from app.repository import cargar_consultas_df, cargar_planes_dict
 from app.schemas.catalogos import ProductoOut
 
@@ -25,22 +27,8 @@ def _get_engine() -> Engine:
 
 
 @router.get("/productos", response_model=list[ProductoOut])
-def listar_productos(db_engine: Engine = Depends(_get_engine)):
-    df = cargar_consultas_df(db_engine)
-    df = df[df["producto_nombre"] != "Desconocido"]
-
-    recientes = df.sort_values("fecha").groupby("producto_nombre", as_index=False).last()
-    recientes = recientes.sort_values("producto_nombre")
-
-    return [
-        ProductoOut(
-            producto_nombre=fila["producto_nombre"],
-            categoria=fila["categoria"],
-            precio_lista=int(fila["precio_lista"]),
-            stock_disponible=int(fila["stock_disponible"]),
-        )
-        for _, fila in recientes.iterrows()
-    ]
+def listar_productos(db: Session = Depends(get_db)):
+    return db.query(Producto).filter(Producto.activo.is_(True)).order_by(Producto.producto_nombre).all()
 
 
 @router.get("/obras-sociales", response_model=list[str])

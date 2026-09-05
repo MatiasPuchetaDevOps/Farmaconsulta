@@ -9,6 +9,7 @@ class PlanIn(BaseModel):
 
 
 class PlanOut(BaseModel):
+    id: int
     obra_social: str
     descuento_os: float
     actualizado_en: datetime

@@ -8,12 +8,8 @@ class ConsultaIn(BaseModel):
     cliente_tel: str = ""
     obra_social: str
     plan_afiliado: str = "Plan General"
-    producto_nombre: str = Field(min_length=1)
-    categoria: str
-    precio_lista: int = Field(gt=0)
-    stock_disponible: int = Field(ge=0)
+    producto_id: int
     metodo_pago: str
-    requiere_receta: bool = False
     fecha: date
 
 

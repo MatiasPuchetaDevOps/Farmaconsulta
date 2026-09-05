@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Date, Index, Integer, Numeric, String
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -14,6 +14,35 @@ class Usuario(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     nombre_completo: Mapped[str | None] = mapped_column(String(150))
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class Producto(Base):
+    __tablename__ = "productos"
+    __table_args__ = (
+        CheckConstraint("precio_lista >= 0", name="ck_producto_precio_lista"),
+        CheckConstraint("stock_disponible >= 0", name="ck_producto_stock"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    producto_nombre: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    categoria: Mapped[str] = mapped_column(String(100), nullable=False)
+    precio_lista: Mapped[int] = mapped_column(Integer, nullable=False)
+    stock_disponible: Mapped[int] = mapped_column(Integer, nullable=False)
+    droga_generica: Mapped[str | None] = mapped_column(String(200))
+    requiere_receta: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    creado_en: Mapped[datetime] = mapped_column(server_default=func.now())
+    actualizado_en: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class Cliente(Base):
+    __tablename__ = "clientes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    telefono: Mapped[str | None] = mapped_column(String(30))
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(server_default=func.now())
 
@@ -42,10 +71,12 @@ class Consulta(Base):
     id_consulta: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     fecha: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     cliente_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    cliente_ref_id: Mapped[int | None] = mapped_column(ForeignKey("clientes.id"))
     cliente_nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     cliente_tel: Mapped[str | None] = mapped_column(String(30))
     obra_social: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     plan_afiliado: Mapped[str | None] = mapped_column(String(100))
+    producto_id: Mapped[int | None] = mapped_column(ForeignKey("productos.id"))
     producto_nombre: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     droga_generica: Mapped[str | None] = mapped_column(String(200))
     precio_lista: Mapped[int] = mapped_column(Integer, nullable=False)

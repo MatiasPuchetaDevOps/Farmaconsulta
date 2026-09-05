@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core_logic import calculadora
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Consulta, PlanDescuento, Usuario
+from app.models import Cliente, Consulta, PlanDescuento, Producto
 from app.repository import cargar_planes_dict
 from app.schemas.consultas import ConsultaIn, ConsultaOut
 from app.schemas.planes import PlanIn, PlanOut
@@ -46,16 +46,50 @@ def cargar_plan(payload: PlanIn, db: Session = Depends(get_db)):
     return plan
 
 
+@router.delete("/planes/{plan_id}", status_code=204)
+def eliminar_plan(plan_id: int, db: Session = Depends(get_db)):
+    plan = db.get(PlanDescuento, plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan no encontrado.")
+    db.delete(plan)
+    db.commit()
+
+
+def _buscar_o_crear_cliente(db: Session, nombre: str, telefono: str) -> Cliente:
+    nombre_normalizado = nombre.strip().title()
+    telefono_normalizado = telefono.strip() or None
+
+    query = db.query(Cliente).filter(Cliente.nombre == nombre_normalizado)
+    if telefono_normalizado:
+        query = query.filter(Cliente.telefono == telefono_normalizado)
+    else:
+        query = query.filter(Cliente.telefono.is_(None))
+
+    cliente = query.first()
+    if cliente is not None:
+        return cliente
+
+    cliente = Cliente(nombre=nombre_normalizado, telefono=telefono_normalizado)
+    db.add(cliente)
+    db.flush()  # asigna cliente.id sin cerrar la transacción de la consulta
+    return cliente
+
+
 @router.post("/consultas", response_model=ConsultaOut)
 def cargar_consulta(payload: ConsultaIn, db: Session = Depends(get_db)):
+    producto = db.get(Producto, payload.producto_id)
+    if producto is None or not producto.activo:
+        raise HTTPException(status_code=404, detail="Producto no encontrado o dado de baja.")
+
     tabla_planes = cargar_planes_dict(db.get_bind())
 
     # El descuento y el precio final salen de calculadora.py, nunca se calculan a mano acá
     descuento_os = calculadora.obtener_descuento_os(payload.obra_social, tabla_planes)
     descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago)
-    precio_final = calculadora.calcular_precio_final(payload.precio_lista, descuento_os, descuento_banco)
+    precio_final = calculadora.calcular_precio_final(producto.precio_lista, descuento_os, descuento_banco)
 
     banco_promocion = BANCO_PROMOCION_POR_METODO.get(payload.metodo_pago, "Sin Promo")
+    cliente = _buscar_o_crear_cliente(db, payload.cliente_nombre, payload.cliente_tel)
 
     siguiente_id_consulta = (db.query(func.coalesce(func.max(Consulta.id_consulta), 0)).scalar() or 0) + 1
     siguiente_cliente_id = (db.query(func.coalesce(func.max(Consulta.cliente_id), 0)).scalar() or 0) + 1
@@ -64,20 +98,22 @@ def cargar_consulta(payload: ConsultaIn, db: Session = Depends(get_db)):
         id_consulta=siguiente_id_consulta,
         fecha=payload.fecha,
         cliente_id=siguiente_cliente_id,
-        cliente_nombre=payload.cliente_nombre.strip(),
-        cliente_tel=payload.cliente_tel.strip(),
+        cliente_ref_id=cliente.id,
+        cliente_nombre=cliente.nombre,
+        cliente_tel=cliente.telefono or "",
         obra_social=payload.obra_social,
         plan_afiliado=payload.plan_afiliado.strip(),
-        producto_nombre=payload.producto_nombre.strip(),
-        droga_generica="Droga Genérica",
-        precio_lista=payload.precio_lista,
+        producto_id=producto.id,
+        producto_nombre=producto.producto_nombre,
+        droga_generica=producto.droga_generica or "Droga Genérica",
+        precio_lista=producto.precio_lista,
         descuento_os=descuento_os,
         metodo_pago=payload.metodo_pago,
         descuento_banco=descuento_banco,
         banco_promocion=banco_promocion,
-        stock_disponible=payload.stock_disponible,
-        categoria=payload.categoria,
-        requiere_receta=payload.requiere_receta,
+        stock_disponible=producto.stock_disponible,
+        categoria=producto.categoria,
+        requiere_receta=producto.requiere_receta,
         precio_final=precio_final,
     )
     db.add(consulta)

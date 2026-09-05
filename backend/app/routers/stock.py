@@ -3,7 +3,7 @@ from sqlalchemy import Engine
 
 from app.core_logic import calculadora
 from app.database import engine
-from app.repository import cargar_consultas_df
+from app.repository import cargar_productos_df
 from app.schemas.stock import AlternativaOut, StockOut
 
 router = APIRouter(prefix="/api/stock", tags=["stock"])
@@ -15,7 +15,7 @@ def _get_engine() -> Engine:
 
 @router.get("/{producto_nombre}", response_model=StockOut)
 def consultar_stock(producto_nombre: str, umbral: int = 10, db_engine: Engine = Depends(_get_engine)):
-    df = cargar_consultas_df(db_engine)
+    df = cargar_productos_df(db_engine)
 
     registros = df[df["producto_nombre"] == producto_nombre]
     if registros.empty:

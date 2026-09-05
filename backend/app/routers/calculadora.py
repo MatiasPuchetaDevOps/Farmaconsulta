@@ -3,7 +3,7 @@ from sqlalchemy import Engine
 
 from app.core_logic import calculadora
 from app.database import engine
-from app.repository import cargar_consultas_df, cargar_planes_dict
+from app.repository import cargar_productos_df, cargar_planes_dict
 from app.schemas.calculadora import CalcularRequest, CompararRequest, DesgloseResponse, MedioPagoOut
 
 router = APIRouter(prefix="/api/calculadora", tags=["calculadora"])
@@ -22,7 +22,7 @@ def _precio_lista_vigente(df, producto_nombre: str):
 
 @router.post("/calcular", response_model=DesgloseResponse)
 def calcular(payload: CalcularRequest, db_engine: Engine = Depends(_get_engine)):
-    df = cargar_consultas_df(db_engine)
+    df = cargar_productos_df(db_engine)
     tabla_planes = cargar_planes_dict(db_engine)
 
     precio_lista = _precio_lista_vigente(df, payload.producto_nombre)
@@ -52,7 +52,7 @@ def calcular(payload: CalcularRequest, db_engine: Engine = Depends(_get_engine))
 
 @router.post("/comparar-medios-pago", response_model=list[MedioPagoOut])
 def comparar_medios_pago(payload: CompararRequest, db_engine: Engine = Depends(_get_engine)):
-    df = cargar_consultas_df(db_engine)
+    df = cargar_productos_df(db_engine)
     tabla_planes = cargar_planes_dict(db_engine)
 
     precio_lista = _precio_lista_vigente(df, payload.producto_nombre)
