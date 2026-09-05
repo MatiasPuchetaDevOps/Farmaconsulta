@@ -28,3 +28,11 @@ app.include_router(usuarios.router)
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/")
+def raiz():
+    # EasyPanel (y la mayoría de los PaaS) usan GET / como health check por
+    # defecto. Sin esta ruta, FastAPI devuelve 404 acá y el proveedor
+    # reinicia el contenedor en loop pensando que está "unhealthy".
+    return {"status": "ok"}
