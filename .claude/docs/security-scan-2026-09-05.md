@@ -2,6 +2,8 @@
 
 Stack detectado: FastAPI + SQLAlchemy 2.x + PostgreSQL (backend), React 19 + Vite + Mantine (frontend). No es ecosistema Meteoryd — reglas extra Meteoryd-aware no aplican.
 
+**Update 2026-09-05 (misma fecha, segunda pasada):** se confirmó que el repo es **público** en GitHub (`MatiasPuchetaDevOps/Farmaconsulta`) y que `docker-compose.yml` viene commiteado con `POSTGRES_PASSWORD`/`JWT_SECRET` hardcodeados desde el primer commit (`8e78bc4`). Sube de MEDIO a considerarse explotable si ese compose se despliega tal cual en un servidor expuesto: contraseña de Postgres = usuario y JWT secret conocido públicamente permiten conexión directa a la DB y forjar tokens válidos, bypasseando el login. **Ya se aplicó el fix**: `docker-compose.yml` ahora lee `POSTGRES_PASSWORD`/`JWT_SECRET`/etc. desde variables de entorno (con `${VAR:?...}` que aborta si faltan) y se agregó `.env.example` en la raíz como plantilla; el `.env` real queda en `.gitignore`. No hace falta reescribir el historial de git: los valores commiteados eran placeholders de dev, nunca la credencial real de producción (esa está solo en `backend/.env`, nunca commiteada — ver hallazgo #1).
+
 ## Resumen
 - 1 CRÍTICO, 1 ALTO, 2 MEDIOS, 2 BAJOS
 - Familias con hallazgos: F1 (secrets), F6 (IDOR/broken access control), F9 (crypto/token handling)
