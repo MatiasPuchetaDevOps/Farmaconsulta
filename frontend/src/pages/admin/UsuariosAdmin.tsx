@@ -20,7 +20,10 @@ export function UsuariosAdmin() {
   const [enviando, setEnviando] = useState(false)
 
   function cargarUsuarios() {
-    api.get<UsuarioAdmin[]>('/usuarios').then((res) => setUsuarios(res.data))
+    api
+      .get<UsuarioAdmin[]>('/usuarios')
+      .then((res) => setUsuarios(res.data))
+      .catch(() => notifications.show({ title: 'No se pudo cargar', message: 'No se pudieron cargar los usuarios.', color: 'red' }))
   }
 
   useEffect(cargarUsuarios, [])

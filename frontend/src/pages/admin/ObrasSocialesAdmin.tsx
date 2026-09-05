@@ -16,7 +16,10 @@ export function ObrasSocialesAdmin() {
   const [enviando, setEnviando] = useState(false)
 
   function cargarPlanes() {
-    api.get<Plan[]>('/planes').then((res) => setPlanes(res.data))
+    api
+      .get<Plan[]>('/planes')
+      .then((res) => setPlanes(res.data))
+      .catch(() => notifications.show({ title: 'No se pudo cargar', message: 'No se pudieron cargar los planes.', color: 'red' }))
   }
 
   useEffect(cargarPlanes, [])

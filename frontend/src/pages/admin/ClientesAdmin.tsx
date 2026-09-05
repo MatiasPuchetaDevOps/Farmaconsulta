@@ -17,7 +17,10 @@ export function ClientesAdmin() {
   const [enviando, setEnviando] = useState(false)
 
   function cargarClientes(q = '') {
-    api.get<Cliente[]>('/clientes', { params: q ? { q } : undefined }).then((res) => setClientes(res.data))
+    api
+      .get<Cliente[]>('/clientes', { params: q ? { q } : undefined })
+      .then((res) => setClientes(res.data))
+      .catch(() => notifications.show({ title: 'No se pudo cargar', message: 'No se pudieron cargar los clientes.', color: 'red' }))
   }
 
   useEffect(() => cargarClientes(), [])

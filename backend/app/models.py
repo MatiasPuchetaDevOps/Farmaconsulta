@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Index, Integer, Numeric, String
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -70,7 +70,7 @@ class Consulta(Base):
 
     id_consulta: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     fecha: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    cliente_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    cliente_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     cliente_ref_id: Mapped[int | None] = mapped_column(ForeignKey("clientes.id"))
     cliente_nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     cliente_tel: Mapped[str | None] = mapped_column(String(30))

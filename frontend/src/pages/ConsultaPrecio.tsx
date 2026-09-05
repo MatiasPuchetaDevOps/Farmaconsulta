@@ -38,14 +38,16 @@ export function ConsultaPrecio() {
       api.get<Producto[]>('/catalogos/productos'),
       api.get<string[]>('/catalogos/obras-sociales'),
       api.get<string[]>('/catalogos/metodos-pago'),
-    ]).then(([resProductos, resObras, resMetodos]) => {
-      setProductos(resProductos.data)
-      setObrasSociales(resObras.data)
-      setMetodosPago(resMetodos.data)
-      if (resProductos.data.length) setProducto(resProductos.data[0].producto_nombre)
-      if (resObras.data.length) setObraSocial(resObras.data[0])
-      if (resMetodos.data.length) setMetodoPago(resMetodos.data[0])
-    })
+    ])
+      .then(([resProductos, resObras, resMetodos]) => {
+        setProductos(resProductos.data)
+        setObrasSociales(resObras.data)
+        setMetodosPago(resMetodos.data)
+        if (resProductos.data.length) setProducto(resProductos.data[0].producto_nombre)
+        if (resObras.data.length) setObraSocial(resObras.data[0])
+        if (resMetodos.data.length) setMetodoPago(resMetodos.data[0])
+      })
+      .catch(() => setError('No se pudieron cargar los datos para la consulta. Probá recargar la página.'))
   }, [])
 
   async function calcular() {

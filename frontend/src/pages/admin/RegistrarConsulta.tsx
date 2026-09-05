@@ -25,9 +25,10 @@ export function RegistrarConsulta() {
   })
 
   useEffect(() => {
-    api.get<Producto[]>('/catalogos/productos').then((res) => setProductos(res.data))
-    api.get<string[]>('/catalogos/obras-sociales').then((res) => setObrasSociales(res.data))
-    api.get<Cliente[]>('/clientes').then((res) => setClientes(res.data))
+    const mensajeError = () => notifications.show({ title: 'No se pudo cargar', message: 'No se pudieron cargar los datos del formulario.', color: 'red' })
+    api.get<Producto[]>('/catalogos/productos').then((res) => setProductos(res.data)).catch(mensajeError)
+    api.get<string[]>('/catalogos/obras-sociales').then((res) => setObrasSociales(res.data)).catch(mensajeError)
+    api.get<Cliente[]>('/clientes').then((res) => setClientes(res.data)).catch(mensajeError)
   }, [])
 
   const productoSeleccionado = productos.find((p) => String(p.id) === productoId)
@@ -54,7 +55,10 @@ export function RegistrarConsulta() {
       })
       setForm({ ...form, cliente_nombre: '', cliente_tel: '' })
       setProductoId(null)
-      api.get<Cliente[]>('/clientes').then((r) => setClientes(r.data))
+      api
+        .get<Cliente[]>('/clientes')
+        .then((r) => setClientes(r.data))
+        .catch(() => notifications.show({ title: 'No se pudo cargar', message: 'No se pudo refrescar la lista de clientes.', color: 'red' }))
     } finally {
       setEnviando(false)
     }

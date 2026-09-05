@@ -41,7 +41,10 @@ export function ProductosAdmin() {
   const [enviando, setEnviando] = useState(false)
 
   function cargarProductos() {
-    api.get<Producto[]>('/productos').then((res) => setProductos(res.data))
+    api
+      .get<Producto[]>('/productos')
+      .then((res) => setProductos(res.data))
+      .catch(() => notifications.show({ title: 'No se pudo cargar', message: 'No se pudieron cargar los productos.', color: 'red' }))
   }
 
   useEffect(cargarProductos, [])

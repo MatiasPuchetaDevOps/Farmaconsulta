@@ -49,7 +49,7 @@ def upgrade() -> None:
         sa.text(
             """
             INSERT INTO productos (producto_nombre, categoria, precio_lista, stock_disponible, droga_generica, requiere_receta, activo)
-            SELECT producto_nombre, categoria, precio_lista, stock_disponible, droga_generica, requiere_receta, 1
+            SELECT producto_nombre, categoria, precio_lista, stock_disponible, droga_generica, requiere_receta, TRUE
             FROM (
                 SELECT
                     producto_nombre, categoria, precio_lista, stock_disponible, droga_generica, requiere_receta,
@@ -68,7 +68,7 @@ def upgrade() -> None:
         sa.text(
             """
             INSERT INTO clientes (nombre, telefono, activo)
-            SELECT DISTINCT cliente_nombre, NULLIF(cliente_tel, ''), 1
+            SELECT DISTINCT cliente_nombre, NULLIF(cliente_tel, ''), TRUE
             FROM consultas
             """
         )
