@@ -27,6 +27,7 @@ def crear_producto(payload: ProductoIn, db: Session = Depends(get_db)):
         stock_disponible=payload.stock_disponible,
         droga_generica=payload.droga_generica,
         requiere_receta=payload.requiere_receta,
+        codigo_barras=(payload.codigo_barras or "").strip() or None,
         activo=payload.activo,
     )
     db.add(producto)
@@ -52,6 +53,7 @@ def editar_producto(producto_id: int, payload: ProductoIn, db: Session = Depends
     producto.stock_disponible = payload.stock_disponible
     producto.droga_generica = payload.droga_generica
     producto.requiere_receta = payload.requiere_receta
+    producto.codigo_barras = (payload.codigo_barras or "").strip() or None
     producto.activo = payload.activo
     db.commit()
     db.refresh(producto)

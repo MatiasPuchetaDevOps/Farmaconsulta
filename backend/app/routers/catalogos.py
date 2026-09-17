@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
@@ -29,6 +29,18 @@ def _get_engine() -> Engine:
 @router.get("/productos", response_model=list[ProductoOut])
 def listar_productos(db: Session = Depends(get_db)):
     return db.query(Producto).filter(Producto.activo.is_(True)).order_by(Producto.producto_nombre).all()
+
+
+@router.get("/productos/buscar-codigo-barras/{codigo}", response_model=ProductoOut)
+def buscar_por_codigo_barras(codigo: str, db: Session = Depends(get_db)):
+    producto = (
+        db.query(Producto)
+        .filter(Producto.codigo_barras == codigo.strip(), Producto.activo.is_(True))
+        .first()
+    )
+    if producto is None:
+        raise HTTPException(status_code=404, detail=f"No se encontró ningún producto con el código '{codigo}'.")
+    return producto
 
 
 @router.get("/obras-sociales", response_model=list[str])

@@ -32,9 +32,14 @@ def main():
     try:
         usuario = db.query(Usuario).filter(Usuario.username == username).first()
         if usuario is None:
-            usuario = Usuario(username=username, password_hash=hash_password(password), nombre_completo="Personal de farmacia")
+            usuario = Usuario(
+                username=username,
+                password_hash=hash_password(password),
+                nombre_completo="Personal de farmacia",
+                es_admin=True,
+            )
             db.add(usuario)
-            print(f"Usuario '{username}' creado.")
+            print(f"Usuario '{username}' creado (administrador).")
         else:
             usuario.password_hash = hash_password(password)
             print(f"Usuario '{username}' ya existía: contraseña actualizada.")

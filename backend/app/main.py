@@ -2,7 +2,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import admin, analisis, auth, calculadora, catalogos, clientes, productos, stock, usuarios
+from app.routers import (
+    admin,
+    analisis,
+    auth,
+    caja,
+    calculadora,
+    catalogos,
+    clientes,
+    lotes,
+    obras_sociales_reglas,
+    pedidos,
+    productos,
+    recetas,
+    sincronizacion,
+    stock,
+    usuarios,
+)
 
 app = FastAPI(title="FarmaConsulta API")
 
@@ -23,6 +39,12 @@ app.include_router(admin.router)
 app.include_router(productos.router)
 app.include_router(clientes.router)
 app.include_router(usuarios.router)
+app.include_router(pedidos.router)
+app.include_router(caja.router)
+app.include_router(lotes.router)
+app.include_router(obras_sociales_reglas.router)
+app.include_router(recetas.router)
+app.include_router(sincronizacion.router)
 
 
 @app.get("/api/health")

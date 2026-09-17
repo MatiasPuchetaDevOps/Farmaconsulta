@@ -9,6 +9,7 @@ class ProductoOut(BaseModel):
     stock_disponible: int
     droga_generica: str | None = None
     requiere_receta: bool = False
+    codigo_barras: str | None = None
     activo: bool = True
 
     model_config = {"from_attributes": True}
@@ -21,4 +22,5 @@ class ProductoIn(BaseModel):
     stock_disponible: int = Field(ge=0)
     droga_generica: str | None = None
     requiere_receta: bool = False
+    codigo_barras: str | None = None
     activo: bool = True

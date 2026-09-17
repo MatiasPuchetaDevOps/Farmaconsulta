@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Badge, Button, Group, Modal, PasswordInput, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { ActionIcon, Alert, Badge, Button, Checkbox, Group, Modal, PasswordInput, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import { IconAlertCircle, IconEdit, IconPlus, IconUserX } from '@tabler/icons-react'
@@ -9,6 +9,7 @@ import type { UsuarioAdmin } from '../../types/api'
 
 export function UsuariosAdmin() {
   const { usuario: sesionActual } = useAuth()
+  const esAdmin = sesionActual?.es_admin ?? false
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([])
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<UsuarioAdmin | null>(null)
@@ -16,6 +17,7 @@ export function UsuariosAdmin() {
   const [username, setUsername] = useState('')
   const [nombreCompleto, setNombreCompleto] = useState('')
   const [password, setPassword] = useState('')
+  const [esAdminNuevo, setEsAdminNuevo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -33,6 +35,7 @@ export function UsuariosAdmin() {
     setUsername('')
     setNombreCompleto('')
     setPassword('')
+    setEsAdminNuevo(false)
     setError(null)
     setModalAbierto(true)
   }
@@ -42,6 +45,7 @@ export function UsuariosAdmin() {
     setUsername(u.username)
     setNombreCompleto(u.nombre_completo ?? '')
     setPassword('')
+    setEsAdminNuevo(u.es_admin)
     setError(null)
     setModalAbierto(true)
   }
@@ -54,6 +58,7 @@ export function UsuariosAdmin() {
         await api.put(`/usuarios/${editando.id}`, {
           nombre_completo: nombreCompleto,
           password: password || null,
+          ...(esAdmin ? { es_admin: esAdminNuevo } : {}),
         })
         notifications.show({ title: 'Usuario actualizado', message: username, color: 'teal' })
       } else {
@@ -61,7 +66,7 @@ export function UsuariosAdmin() {
           setError('Completá el usuario y una contraseña de al menos 6 caracteres.')
           return
         }
-        await api.post('/usuarios', { username, password, nombre_completo: nombreCompleto || null })
+        await api.post('/usuarios', { username, password, nombre_completo: nombreCompleto || null, es_admin: esAdminNuevo })
         notifications.show({ title: 'Usuario creado', message: username, color: 'teal' })
       }
       setModalAbierto(false)
@@ -103,9 +108,11 @@ export function UsuariosAdmin() {
     <Stack gap="md">
       <Group justify="space-between">
         <Title order={4}>Usuarios del personal ({usuarios.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nuevo usuario
-        </Button>
+        {esAdmin && (
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nuevo usuario
+          </Button>
+        )}
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -113,47 +120,60 @@ export function UsuariosAdmin() {
           <Table.Tr>
             <Table.Th>Usuario</Table.Th>
             <Table.Th>Nombre completo</Table.Th>
+            <Table.Th>Rol</Table.Th>
             <Table.Th>Estado</Table.Th>
             <Table.Th w={100} />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {usuarios.map((u) => (
-            <Table.Tr key={u.id} opacity={u.activo ? 1 : 0.5}>
-              <Table.Td>
-                <Group gap={6}>
-                  {u.username}
-                  {u.username === sesionActual?.username && (
-                    <Badge size="xs" variant="light">
-                      vos
-                    </Badge>
-                  )}
-                </Group>
-              </Table.Td>
-              <Table.Td>{u.nombre_completo ?? '—'}</Table.Td>
-              <Table.Td>
-                <Badge variant="light" color={u.activo ? 'teal' : 'gray'}>
-                  {u.activo ? 'Activo' : 'Desactivado'}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group gap={4}>
-                  <ActionIcon variant="subtle" onClick={() => abrirEdicion(u)} aria-label="Editar">
-                    <IconEdit size={16} />
-                  </ActionIcon>
-                  {u.activo ? (
-                    <ActionIcon variant="subtle" color="red" onClick={() => confirmarBaja(u)} aria-label="Desactivar">
-                      <IconUserX size={16} />
-                    </ActionIcon>
-                  ) : (
-                    <Button size="xs" variant="subtle" onClick={() => reactivar(u)}>
-                      Reactivar
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
+          {usuarios.map((u) => {
+            const esUnoMismo = u.username === sesionActual?.username
+            const puedeEditar = esAdmin || esUnoMismo
+            return (
+              <Table.Tr key={u.id} opacity={u.activo ? 1 : 0.5}>
+                <Table.Td>
+                  <Group gap={6}>
+                    {u.username}
+                    {esUnoMismo && (
+                      <Badge size="xs" variant="light">
+                        vos
+                      </Badge>
+                    )}
+                  </Group>
+                </Table.Td>
+                <Table.Td>{u.nombre_completo ?? '—'}</Table.Td>
+                <Table.Td>
+                  <Badge variant="light" color={u.es_admin ? 'grape' : 'gray'}>
+                    {u.es_admin ? 'Administrador' : 'Personal'}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Badge variant="light" color={u.activo ? 'teal' : 'gray'}>
+                    {u.activo ? 'Activo' : 'Desactivado'}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Group gap={4}>
+                    {puedeEditar && (
+                      <ActionIcon variant="subtle" onClick={() => abrirEdicion(u)} aria-label="Editar">
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                    )}
+                    {esAdmin &&
+                      (u.activo ? (
+                        <ActionIcon variant="subtle" color="red" onClick={() => confirmarBaja(u)} aria-label="Desactivar">
+                          <IconUserX size={16} />
+                        </ActionIcon>
+                      ) : (
+                        <Button size="xs" variant="subtle" onClick={() => reactivar(u)}>
+                          Reactivar
+                        </Button>
+                      ))}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            )
+          })}
         </Table.Tbody>
       </Table>
 
@@ -167,6 +187,13 @@ export function UsuariosAdmin() {
             onChange={(e) => setPassword(e.currentTarget.value)}
             description={editando ? 'Dejá vacío para mantener la contraseña actual.' : 'Mínimo 6 caracteres.'}
           />
+          {esAdmin && (
+            <Checkbox
+              label="Administrador (puede gestionar usuarios)"
+              checked={esAdminNuevo}
+              onChange={(e) => setEsAdminNuevo(e.currentTarget.checked)}
+            />
+          )}
           {error && (
             <Alert color="red" icon={<IconAlertCircle size={16} />} variant="light">
               {error}

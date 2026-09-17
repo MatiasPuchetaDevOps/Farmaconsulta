@@ -30,6 +30,7 @@ const VACIO: ProductoIn = {
   stock_disponible: 0,
   droga_generica: '',
   requiere_receta: false,
+  codigo_barras: '',
   activo: true,
 }
 
@@ -64,6 +65,7 @@ export function ProductosAdmin() {
       stock_disponible: producto.stock_disponible,
       droga_generica: producto.droga_generica ?? '',
       requiere_receta: producto.requiere_receta,
+      codigo_barras: producto.codigo_barras ?? '',
       activo: producto.activo,
     })
     setModalAbierto(true)
@@ -73,7 +75,7 @@ export function ProductosAdmin() {
     if (!form.producto_nombre.trim()) return
     setEnviando(true)
     try {
-      const payload = { ...form, droga_generica: form.droga_generica?.trim() || null }
+      const payload = { ...form, droga_generica: form.droga_generica?.trim() || null, codigo_barras: form.codigo_barras?.trim() || null }
       if (editando) {
         await api.put(`/productos/${editando.id}`, payload)
         notifications.show({ title: 'Producto actualizado', message: form.producto_nombre, color: 'teal' })
@@ -192,6 +194,11 @@ export function ProductosAdmin() {
             label="Droga genérica (opcional)"
             value={form.droga_generica ?? ''}
             onChange={(e) => setForm({ ...form, droga_generica: e.currentTarget.value })}
+          />
+          <TextInput
+            label="Código de barras (opcional)"
+            value={form.codigo_barras ?? ''}
+            onChange={(e) => setForm({ ...form, codigo_barras: e.currentTarget.value })}
           />
           <Checkbox
             label="Requiere receta"

@@ -1,14 +1,15 @@
 import { AppShell, Anchor, Button, Container, Group, Tabs, Text, Title } from '@mantine/core'
-import { IconChartBar, IconLogout, IconSearch, IconSettings } from '@tabler/icons-react'
+import { IconChartBar, IconLogout, IconSearch, IconSettings, IconShoppingCart } from '@tabler/icons-react'
 import { useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { Administracion } from './pages/Administracion'
 import { AnalisisExploratorio } from './pages/AnalisisExploratorio'
 import { ConsultaPrecio } from './pages/ConsultaPrecio'
+import { Pedidos } from './pages/Pedidos'
 import { Login } from './pages/Login'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-type Pestaña = 'consulta' | 'analisis' | 'administracion'
+type Pestaña = 'consulta' | 'pedidos' | 'analisis' | 'administracion'
 
 function PaginaPrincipal() {
   const { usuario, logout, cargando } = useAuth()
@@ -54,6 +55,9 @@ function PaginaPrincipal() {
                 <Tabs.Tab value="consulta" leftSection={<IconSearch size={16} />}>
                   Consulta de precio
                 </Tabs.Tab>
+                <Tabs.Tab value="pedidos" leftSection={<IconShoppingCart size={16} />}>
+                  Venta
+                </Tabs.Tab>
                 <Tabs.Tab value="analisis" leftSection={<IconChartBar size={16} />}>
                   Análisis exploratorio
                 </Tabs.Tab>
@@ -66,6 +70,7 @@ function PaginaPrincipal() {
 
           {!usuario && <ConsultaPrecio />}
           {usuario && pestaña === 'consulta' && <ConsultaPrecio />}
+          {usuario && pestaña === 'pedidos' && <Pedidos />}
           {usuario && pestaña === 'analisis' && <AnalisisExploratorio />}
           {usuario && pestaña === 'administracion' && <Administracion />}
         </Container>

@@ -4,6 +4,7 @@ import { api } from '../api/client'
 interface Usuario {
   username: string
   nombre_completo: string | null
+  es_admin: boolean
 }
 
 interface AuthContextValue {

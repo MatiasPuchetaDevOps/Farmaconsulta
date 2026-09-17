@@ -15,3 +15,4 @@ class TokenResponse(BaseModel):
 class UsuarioOut(BaseModel):
     username: str
     nombre_completo: str | None = None
+    es_admin: bool

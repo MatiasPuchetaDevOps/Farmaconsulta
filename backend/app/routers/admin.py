@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.core_logic import calculadora
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Cliente, Consulta, PlanDescuento, Producto
-from app.repository import cargar_planes_dict
+from app.models import Consulta, PlanDescuento, Producto
+from app.repository import buscar_o_crear_cliente, cargar_planes_dict
 from app.schemas.consultas import ConsultaIn, ConsultaOut
 from app.schemas.planes import PlanIn, PlanOut
 
@@ -55,26 +55,6 @@ def eliminar_plan(plan_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-def _buscar_o_crear_cliente(db: Session, nombre: str, telefono: str) -> Cliente:
-    nombre_normalizado = nombre.strip().title()
-    telefono_normalizado = telefono.strip() or None
-
-    query = db.query(Cliente).filter(Cliente.nombre == nombre_normalizado)
-    if telefono_normalizado:
-        query = query.filter(Cliente.telefono == telefono_normalizado)
-    else:
-        query = query.filter(Cliente.telefono.is_(None))
-
-    cliente = query.first()
-    if cliente is not None:
-        return cliente
-
-    cliente = Cliente(nombre=nombre_normalizado, telefono=telefono_normalizado)
-    db.add(cliente)
-    db.flush()  # asigna cliente.id sin cerrar la transacción de la consulta
-    return cliente
-
-
 @router.post("/consultas", response_model=ConsultaOut)
 def cargar_consulta(payload: ConsultaIn, db: Session = Depends(get_db)):
     producto = db.get(Producto, payload.producto_id)
@@ -89,7 +69,7 @@ def cargar_consulta(payload: ConsultaIn, db: Session = Depends(get_db)):
     precio_final = calculadora.calcular_precio_final(producto.precio_lista, descuento_os, descuento_banco)
 
     banco_promocion = BANCO_PROMOCION_POR_METODO.get(payload.metodo_pago, "Sin Promo")
-    cliente = _buscar_o_crear_cliente(db, payload.cliente_nombre, payload.cliente_tel)
+    cliente = buscar_o_crear_cliente(db, payload.cliente_nombre, payload.cliente_tel)
 
     siguiente_id_consulta = (db.query(func.coalesce(func.max(Consulta.id_consulta), 0)).scalar() or 0) + 1
     siguiente_cliente_id = (db.query(func.coalesce(func.max(Consulta.cliente_id), 0)).scalar() or 0) + 1

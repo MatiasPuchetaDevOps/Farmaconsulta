@@ -10,15 +10,19 @@ import {
   Stack,
   Table,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import { IconAlertTriangle, IconCircleCheck, IconCoin, IconSearch } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import type { Desglose, MedioPago, Producto, StockInfo } from '../types/api'
 import { formatoPesos, formatoPorcentaje } from '../utils/formato'
 
 export function ConsultaPrecio() {
+  const { usuario } = useAuth()
   const [productos, setProductos] = useState<Producto[]>([])
   const [obrasSociales, setObrasSociales] = useState<string[]>([])
   const [metodosPago, setMetodosPago] = useState<string[]>([])
@@ -26,6 +30,8 @@ export function ConsultaPrecio() {
   const [producto, setProducto] = useState<string | null>(null)
   const [obraSocial, setObraSocial] = useState<string | null>(null)
   const [metodoPago, setMetodoPago] = useState<string | null>(null)
+  const [clienteNombre, setClienteNombre] = useState('')
+  const [clienteTel, setClienteTel] = useState('')
 
   const [desglose, setDesglose] = useState<Desglose | null>(null)
   const [comparacion, setComparacion] = useState<MedioPago[]>([])
@@ -50,6 +56,29 @@ export function ConsultaPrecio() {
       .catch(() => setError('No se pudieron cargar los datos para la consulta. Probá recargar la página.'))
   }, [])
 
+  function registrarConsulta() {
+    const productoSeleccionado = productos.find((p) => p.producto_nombre === producto)
+    if (!productoSeleccionado || !obraSocial || !metodoPago) return
+
+    api
+      .post('/consultas', {
+        cliente_nombre: clienteNombre.trim() || 'Consulta mostrador',
+        cliente_tel: clienteTel.trim(),
+        obra_social: obraSocial,
+        plan_afiliado: 'Plan General',
+        producto_id: productoSeleccionado.id,
+        metodo_pago: metodoPago,
+        fecha: new Date().toISOString().slice(0, 10),
+      })
+      .catch(() =>
+        notifications.show({
+          title: 'No se sumó a las estadísticas',
+          message: 'El precio se calculó bien, pero esta consulta no se pudo registrar.',
+          color: 'yellow',
+        }),
+      )
+  }
+
   async function calcular() {
     if (!producto || !obraSocial || !metodoPago) return
     setCargando(true)
@@ -63,6 +92,7 @@ export function ConsultaPrecio() {
       setDesglose(resDesglose.data)
       setComparacion(resComparacion.data)
       setStock(resStock.data)
+      if (usuario) registrarConsulta()
     } catch {
       setError('No se pudo calcular el precio. Probá de nuevo.')
     } finally {
@@ -87,9 +117,29 @@ export function ConsultaPrecio() {
             />
             <Select label="Obra social" data={obrasSociales} value={obraSocial} onChange={setObraSocial} searchable />
             <Select label="Método de pago" data={metodosPago} value={metodoPago} onChange={setMetodoPago} />
+            {usuario && (
+              <>
+                <TextInput
+                  label="Cliente (opcional)"
+                  placeholder="Consulta mostrador"
+                  value={clienteNombre}
+                  onChange={(e) => setClienteNombre(e.currentTarget.value)}
+                />
+                <TextInput
+                  label="Teléfono (opcional)"
+                  value={clienteTel}
+                  onChange={(e) => setClienteTel(e.currentTarget.value)}
+                />
+              </>
+            )}
             <Button onClick={calcular} loading={cargando} leftSection={<IconSearch size={16} />} mt="xs">
               Calcular precio
             </Button>
+            {usuario && (
+              <Text size="xs" c="dimmed" ta="center" mt={-8}>
+                Este cálculo se suma a las estadísticas.
+              </Text>
+            )}
             {error && (
               <Alert color="red" variant="light">
                 {error}

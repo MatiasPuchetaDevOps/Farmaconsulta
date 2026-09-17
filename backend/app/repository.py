@@ -1,7 +1,13 @@
+from typing import TypeVar
+
 import pandas as pd
 from sqlalchemy import Engine
+from sqlalchemy.orm import Session
 
 from app.core_logic.limpieza import crear_variables_temporales
+from app.models import Cliente
+
+ModeloConId = TypeVar("ModeloConId")
 
 
 def cargar_consultas_df(engine: Engine) -> pd.DataFrame:
@@ -35,3 +41,40 @@ def cargar_productos_df(engine: Engine) -> pd.DataFrame:
     df = df[df["activo"] == True]  # noqa: E712 -- comparación explícita, no truthiness
     df["fecha"] = pd.to_datetime(df["actualizado_en"])
     return df
+
+
+def buscar_o_crear_cliente(db: Session, nombre: str, telefono: str) -> Cliente:
+    """
+    Helper con Session ORM (el resto del módulo trabaja con Engine + pandas para
+    lecturas); se comparte acá porque tanto la carga de consultas como la de
+    pedidos necesitan el mismo find-or-create de cliente.
+    """
+    nombre_normalizado = nombre.strip().title()
+    telefono_normalizado = telefono.strip() or None
+
+    query = db.query(Cliente).filter(Cliente.nombre == nombre_normalizado)
+    if telefono_normalizado:
+        query = query.filter(Cliente.telefono == telefono_normalizado)
+    else:
+        query = query.filter(Cliente.telefono.is_(None))
+
+    cliente = query.first()
+    if cliente is not None:
+        return cliente
+
+    cliente = Cliente(nombre=nombre_normalizado, telefono=telefono_normalizado)
+    db.add(cliente)
+    db.flush()  # asigna cliente.id sin cerrar la transacción del llamador
+    return cliente
+
+
+def lockear_filas_ordenadas(db: Session, modelo: type[ModeloConId], ids: list[int]) -> dict[int, ModeloConId | None]:
+    """
+    Lockea filas de `modelo` por id, siempre en orden ascendente, para que dos
+    transacciones que tocan filas superpuestas (pedidos.py, sincronizacion.py)
+    nunca tomen los locks en orden cruzado y deadlockeen.
+    """
+    filas: dict[int, ModeloConId | None] = {}
+    for id_ in sorted(set(ids)):
+        filas[id_] = db.query(modelo).filter(modelo.id == id_).with_for_update().first()
+    return filas

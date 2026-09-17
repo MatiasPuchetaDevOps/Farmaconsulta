@@ -28,3 +28,9 @@ def get_current_user(
         raise credentials_error
 
     return usuario
+
+
+def get_current_admin(usuario: Usuario = Depends(get_current_user)) -> Usuario:
+    if not usuario.es_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Requiere permisos de administrador.")
+    return usuario
