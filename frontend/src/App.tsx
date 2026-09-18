@@ -39,9 +39,7 @@ function PaginaPrincipal() {
                 </Button>
               </Group>
             ) : (
-              <Anchor component={Link} to="/login" size="sm" c="dimmed">
-                Acceso personal de farmacia
-              </Anchor>
+              <></>
             )}
           </Group>
         </Container>

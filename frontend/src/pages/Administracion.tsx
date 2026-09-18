@@ -1,4 +1,4 @@
-import { Tabs } from '@mantine/core'
+import { Grid, NavLink, Select, Stack, Text } from '@mantine/core'
 import {
   IconAdjustments,
   IconBuildingBank,
@@ -11,7 +11,7 @@ import {
   IconUserShield,
   IconVaccine,
 } from '@tabler/icons-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { AjustePreciosAdmin } from './admin/AjustePreciosAdmin'
 import { BancosPromocionesAdmin } from './admin/BancosPromocionesAdmin'
@@ -38,90 +38,128 @@ type Seccion =
   | 'recetas'
   | 'ajuste-precios'
 
+interface ItemNav {
+  valor: Seccion
+  etiqueta: string
+  icono: ReactNode
+  soloAdmin?: boolean
+}
+
+interface GrupoNav {
+  titulo: string
+  items: ItemNav[]
+}
+
+const GRUPOS: GrupoNav[] = [
+  {
+    titulo: 'Mostrador',
+    items: [
+      { valor: 'consulta', etiqueta: 'Registrar consulta', icono: <IconClipboardPlus size={16} /> },
+      { valor: 'caja', etiqueta: 'Caja', icono: <IconCash size={16} /> },
+      { valor: 'recetas', etiqueta: 'Recetas', icono: <IconFileText size={16} /> },
+    ],
+  },
+  {
+    titulo: 'Catálogo',
+    items: [
+      { valor: 'productos', etiqueta: 'Productos', icono: <IconVaccine size={16} /> },
+      { valor: 'lotes', etiqueta: 'Lotes / vencimientos', icono: <IconCalendarTime size={16} /> },
+      { valor: 'ajuste-precios', etiqueta: 'Ajuste de precios', icono: <IconAdjustments size={16} />, soloAdmin: true },
+    ],
+  },
+  {
+    titulo: 'Planes',
+    items: [
+      { valor: 'obras-sociales', etiqueta: 'Obras sociales', icono: <IconStethoscope size={16} /> },
+      { valor: 'bancos-promociones', etiqueta: 'Bancos / promociones', icono: <IconBuildingBank size={16} /> },
+      { valor: 'reglas-obra-social', etiqueta: 'Reglas de obra social', icono: <IconStethoscope size={16} />, soloAdmin: true },
+    ],
+  },
+  {
+    titulo: 'Personas',
+    items: [
+      { valor: 'clientes', etiqueta: 'Clientes', icono: <IconUsers size={16} /> },
+      { valor: 'usuarios', etiqueta: 'Usuarios', icono: <IconUserShield size={16} /> },
+    ],
+  },
+]
+
+function renderizarSeccion(seccion: Seccion) {
+  switch (seccion) {
+    case 'consulta':
+      return <RegistrarConsulta />
+    case 'productos':
+      return <ProductosAdmin />
+    case 'lotes':
+      return <LotesAdmin />
+    case 'ajuste-precios':
+      return <AjustePreciosAdmin />
+    case 'obras-sociales':
+      return <ObrasSocialesAdmin />
+    case 'bancos-promociones':
+      return <BancosPromocionesAdmin />
+    case 'reglas-obra-social':
+      return <ReglasObraSocialAdmin />
+    case 'caja':
+      return <CajaAdmin />
+    case 'recetas':
+      return <RecetasAdmin />
+    case 'clientes':
+      return <ClientesAdmin />
+    case 'usuarios':
+      return <UsuariosAdmin />
+  }
+}
+
 export function Administracion() {
   const [seccion, setSeccion] = useState<Seccion>('consulta')
   const { usuario } = useAuth()
   const esAdmin = usuario?.es_admin ?? false
 
-  return (
-    <Tabs value={seccion} onChange={(v) => setSeccion((v as Seccion) ?? 'consulta')} keepMounted={false}>
-      <Tabs.List mb="lg">
-        <Tabs.Tab value="consulta" leftSection={<IconClipboardPlus size={16} />}>
-          Registrar consulta
-        </Tabs.Tab>
-        <Tabs.Tab value="productos" leftSection={<IconVaccine size={16} />}>
-          Productos
-        </Tabs.Tab>
-        <Tabs.Tab value="lotes" leftSection={<IconCalendarTime size={16} />}>
-          Lotes / vencimientos
-        </Tabs.Tab>
-        <Tabs.Tab value="caja" leftSection={<IconCash size={16} />}>
-          Caja
-        </Tabs.Tab>
-        <Tabs.Tab value="recetas" leftSection={<IconFileText size={16} />}>
-          Recetas
-        </Tabs.Tab>
-        <Tabs.Tab value="obras-sociales" leftSection={<IconStethoscope size={16} />}>
-          Obras sociales
-        </Tabs.Tab>
-        <Tabs.Tab value="bancos-promociones" leftSection={<IconBuildingBank size={16} />}>
-          Bancos / promociones
-        </Tabs.Tab>
-        {esAdmin && (
-          <Tabs.Tab value="reglas-obra-social" leftSection={<IconStethoscope size={16} />}>
-            Reglas de obra social
-          </Tabs.Tab>
-        )}
-        <Tabs.Tab value="clientes" leftSection={<IconUsers size={16} />}>
-          Clientes
-        </Tabs.Tab>
-        <Tabs.Tab value="usuarios" leftSection={<IconUserShield size={16} />}>
-          Usuarios
-        </Tabs.Tab>
-        {esAdmin && (
-          <Tabs.Tab value="ajuste-precios" leftSection={<IconAdjustments size={16} />}>
-            Ajuste de precios
-          </Tabs.Tab>
-        )}
-      </Tabs.List>
+  const gruposVisibles = GRUPOS.map((grupo) => ({
+    ...grupo,
+    items: grupo.items.filter((item) => !item.soloAdmin || esAdmin),
+  })).filter((grupo) => grupo.items.length > 0)
 
-      <Tabs.Panel value="consulta">
-        <RegistrarConsulta />
-      </Tabs.Panel>
-      <Tabs.Panel value="productos">
-        <ProductosAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="lotes">
-        <LotesAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="caja">
-        <CajaAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="recetas">
-        <RecetasAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="obras-sociales">
-        <ObrasSocialesAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="bancos-promociones">
-        <BancosPromocionesAdmin />
-      </Tabs.Panel>
-      {esAdmin && (
-        <Tabs.Panel value="reglas-obra-social">
-          <ReglasObraSocialAdmin />
-        </Tabs.Panel>
-      )}
-      <Tabs.Panel value="clientes">
-        <ClientesAdmin />
-      </Tabs.Panel>
-      <Tabs.Panel value="usuarios">
-        <UsuariosAdmin />
-      </Tabs.Panel>
-      {esAdmin && (
-        <Tabs.Panel value="ajuste-precios">
-          <AjustePreciosAdmin />
-        </Tabs.Panel>
-      )}
-    </Tabs>
+  return (
+    <Stack gap="md">
+      <Select
+        hiddenFrom="sm"
+        label="Sección"
+        value={seccion}
+        onChange={(v) => v && setSeccion(v as Seccion)}
+        allowDeselect={false}
+        data={gruposVisibles.map((grupo) => ({
+          group: grupo.titulo,
+          items: grupo.items.map((item) => ({ value: item.valor, label: item.etiqueta })),
+        }))}
+      />
+
+      <Grid>
+        <Grid.Col span={{ base: 12, sm: 4, lg: 3 }} visibleFrom="sm">
+          <Stack gap="md" style={{ borderRight: '1px solid var(--mantine-color-gray-3)' }} pr="md">
+            {gruposVisibles.map((grupo) => (
+              <Stack key={grupo.titulo} gap={2}>
+                <Text size="xs" fw={600} c="dimmed" mb={2}>
+                  {grupo.titulo}
+                </Text>
+                {grupo.items.map((item) => (
+                  <NavLink
+                    key={item.valor}
+                    label={item.etiqueta}
+                    leftSection={item.icono}
+                    active={seccion === item.valor}
+                    onClick={() => setSeccion(item.valor)}
+                    style={{ borderRadius: 6 }}
+                  />
+                ))}
+              </Stack>
+            ))}
+          </Stack>
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, sm: 8, lg: 9 }}>{renderizarSeccion(seccion)}</Grid.Col>
+      </Grid>
+    </Stack>
   )
 }
