@@ -11,7 +11,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import CajaMovimiento, CajaSesion, ObraSocialRegla, Pedido, PedidoItem, Producto, Receta, Usuario
 from app.repository import buscar_o_crear_cliente, cargar_bancos_dict, cargar_planes_dict, lockear_filas_ordenadas
-from app.schemas.pedidos import PedidoIn, PedidoItemOut, PedidoOut
+from app.schemas.pedidos import PedidoEtapaIn, PedidoIn, PedidoItemOut, PedidoOut
 
 router = APIRouter(prefix="/api/pedidos", tags=["pedidos"], dependencies=[Depends(get_current_user)])
 
@@ -25,6 +25,7 @@ def _pedido_a_out(pedido: Pedido, items: list[PedidoItem]) -> PedidoOut:
         plan_afiliado=pedido.plan_afiliado,
         metodo_pago=pedido.metodo_pago,
         estado=pedido.estado,
+        etapa=pedido.etapa,
         total=pedido.total,
         caja_sesion_id=pedido.caja_sesion_id,
         comprobante_numero=pedido.comprobante_numero,
@@ -134,6 +135,7 @@ def crear_pedido(payload: PedidoIn, db: Session = Depends(get_db), actual: Usuar
         plan_afiliado=plan_afiliado,
         metodo_pago=payload.metodo_pago,
         estado="confirmado",
+        etapa="a_preparar",
         total=0,
         usuario_id=actual.id,
         caja_sesion_id=caja_sesion.id if caja_sesion is not None else None,
@@ -199,6 +201,22 @@ def crear_pedido(payload: PedidoIn, db: Session = Depends(get_db), actual: Usuar
     db.commit()
     db.refresh(pedido)
 
+    return _pedido_a_out(pedido, items)
+
+
+@router.post("/{pedido_id}/etapa", response_model=PedidoOut)
+def cambiar_etapa(pedido_id: int, payload: PedidoEtapaIn, db: Session = Depends(get_db)):
+    pedido = db.get(Pedido, pedido_id)
+    if pedido is None:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+    if pedido.estado == "cancelado":
+        raise HTTPException(status_code=400, detail="No se puede cambiar la etapa de un pedido cancelado.")
+
+    pedido.etapa = payload.etapa
+    db.commit()
+    db.refresh(pedido)
+
+    items = db.query(PedidoItem).filter(PedidoItem.pedido_id == pedido_id).all()
     return _pedido_a_out(pedido, items)
 
 

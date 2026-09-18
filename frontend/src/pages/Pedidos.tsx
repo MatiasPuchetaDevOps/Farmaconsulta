@@ -5,10 +5,12 @@ import {
   Badge,
   Button,
   Card,
+  Divider,
   Group,
   Modal,
   NumberInput,
   Select,
+  SegmentedControl,
   Stack,
   Table,
   Text,
@@ -17,7 +19,17 @@ import {
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle, IconAlertTriangle, IconBarcode, IconCheck, IconRefresh, IconSearch, IconShoppingCartPlus, IconTrashX } from '@tabler/icons-react'
+import {
+  IconAlertCircle,
+  IconAlertTriangle,
+  IconBarcode,
+  IconCheck,
+  IconEye,
+  IconRefresh,
+  IconSearch,
+  IconShoppingCartPlus,
+  IconTrashX,
+} from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Cliente, Desglose, Pedido, Producto, Receta, ValidacionOSResultado } from '../types/api'
@@ -30,6 +42,17 @@ interface LineaCarrito {
 
 const COLOR_VALIDACION_OS: Record<string, string> = { aprobado: 'teal', rechazado: 'red', vencido: 'yellow' }
 const COLOR_CAE: Record<string, string> = { aprobado: 'teal', rechazado: 'red', pendiente: 'gray' }
+
+const ETAPAS: { valor: Pedido['etapa']; etiqueta: string; color: string }[] = [
+  { valor: 'a_preparar', etiqueta: 'A preparar', color: 'yellow' },
+  { valor: 'preparado', etiqueta: 'Preparado', color: 'blue' },
+  { valor: 'entregado', etiqueta: 'Entregado', color: 'grape' },
+  { valor: 'pagado', etiqueta: 'Pagado', color: 'teal' },
+]
+
+function etapaInfo(valor: Pedido['etapa']) {
+  return ETAPAS.find((e) => e.valor === valor) ?? ETAPAS[0]
+}
 
 function extraerDetalle(err: unknown): string | undefined {
   return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -62,6 +85,8 @@ export function Pedidos() {
   const [error, setError] = useState<string | null>(null)
   const [reintentandoCae, setReintentandoCae] = useState<number | null>(null)
   const [busquedaHistorial, setBusquedaHistorial] = useState('')
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(null)
+  const [cambiandoEtapa, setCambiandoEtapa] = useState(false)
 
   function cargarCatalogos() {
     Promise.all([
@@ -270,8 +295,9 @@ export function Pedidos() {
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
-          await api.post(`/pedidos/${pedido.id}/cancelar`)
+          const res = await api.post<Pedido>(`/pedidos/${pedido.id}/cancelar`)
           notifications.show({ title: 'Pedido cancelado', message: `#${pedido.id} · ${pedido.cliente_nombre}`, color: 'red' })
+          setPedidoSeleccionado((prev) => (prev?.id === res.data.id ? res.data : prev))
           cargarCatalogos()
           cargarHistorial()
         } catch (err: unknown) {
@@ -279,6 +305,20 @@ export function Pedidos() {
         }
       },
     })
+  }
+
+  async function cambiarEtapa(pedido: Pedido, etapa: Pedido['etapa']) {
+    if (etapa === pedido.etapa) return
+    setCambiandoEtapa(true)
+    try {
+      const res = await api.post<Pedido>(`/pedidos/${pedido.id}/etapa`, { etapa })
+      setHistorial((prev) => prev.map((p) => (p.id === res.data.id ? res.data : p)))
+      setPedidoSeleccionado(res.data)
+    } catch (err: unknown) {
+      notifications.show({ title: 'No se pudo cambiar la etapa', message: extraerDetalle(err) ?? 'Intentá de nuevo.', color: 'red' })
+    } finally {
+      setCambiandoEtapa(false)
+    }
   }
 
   async function reintentarCae(pedido: Pedido) {
@@ -290,6 +330,7 @@ export function Pedidos() {
         message: res.data.cae_estado === 'aprobado' ? `CAE: ${res.data.cae}` : res.data.cae_motivo_rechazo ?? '',
         color: res.data.cae_estado === 'aprobado' ? 'teal' : 'red',
       })
+      setPedidoSeleccionado((prev) => (prev?.id === res.data.id ? res.data : prev))
       cargarHistorial()
     } catch (err: unknown) {
       notifications.show({ title: 'No se pudo reintentar', message: extraerDetalle(err) ?? 'Intentá de nuevo.', color: 'red' })
@@ -436,8 +477,9 @@ export function Pedidos() {
               <Table.Th>Método de pago</Table.Th>
               <Table.Th>Total</Table.Th>
               <Table.Th>Estado</Table.Th>
+              <Table.Th>Etapa</Table.Th>
               <Table.Th>CAE</Table.Th>
-              <Table.Th w={120} />
+              <Table.Th w={140} />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -455,12 +497,20 @@ export function Pedidos() {
                   </Badge>
                 </Table.Td>
                 <Table.Td>
+                  <Badge variant="light" color={etapaInfo(p.etapa).color}>
+                    {etapaInfo(p.etapa).etiqueta}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
                   <Badge variant="light" color={COLOR_CAE[p.cae_estado]}>
                     {p.cae_estado}
                   </Badge>
                 </Table.Td>
                 <Table.Td>
                   <Group gap={4}>
+                    <ActionIcon variant="subtle" onClick={() => setPedidoSeleccionado(p)} aria-label="Ver pedido">
+                      <IconEye size={16} />
+                    </ActionIcon>
                     {p.estado === 'confirmado' && p.cae_estado === 'rechazado' && (
                       <ActionIcon
                         variant="subtle"
@@ -530,6 +580,115 @@ export function Pedidos() {
             Confirmar y descontar stock
           </Button>
         </Stack>
+      </Modal>
+
+      <Modal
+        opened={!!pedidoSeleccionado}
+        onClose={() => setPedidoSeleccionado(null)}
+        title={pedidoSeleccionado ? `Pedido ${pedidoSeleccionado.comprobante_numero ?? `#${pedidoSeleccionado.id}`}` : ''}
+        size="lg"
+      >
+        {pedidoSeleccionado && (
+          <Stack gap="md">
+            <Group justify="space-between" wrap="wrap">
+              <div>
+                <Text fw={600}>{pedidoSeleccionado.cliente_nombre}</Text>
+                <Text size="sm" c="dimmed">
+                  {pedidoSeleccionado.cliente_tel || 'Sin teléfono'}
+                </Text>
+              </div>
+              <Badge variant="light" color={pedidoSeleccionado.estado === 'confirmado' ? 'teal' : 'gray'}>
+                {pedidoSeleccionado.estado === 'confirmado' ? 'Confirmado' : 'Cancelado'}
+              </Badge>
+            </Group>
+
+            <Group gap="xl">
+              <div>
+                <Text size="xs" c="dimmed">
+                  Obra social
+                </Text>
+                <Text size="sm">
+                  {pedidoSeleccionado.obra_social}
+                  {pedidoSeleccionado.plan_afiliado ? ` · ${pedidoSeleccionado.plan_afiliado}` : ''}
+                </Text>
+              </div>
+              <div>
+                <Text size="xs" c="dimmed">
+                  Método de pago
+                </Text>
+                <Text size="sm">{pedidoSeleccionado.metodo_pago}</Text>
+              </div>
+              <div>
+                <Text size="xs" c="dimmed">
+                  Fecha
+                </Text>
+                <Text size="sm">{new Date(pedidoSeleccionado.creado_en).toLocaleString('es-AR')}</Text>
+              </div>
+            </Group>
+
+            <Divider label="Etapa del pedido" labelPosition="left" />
+            <SegmentedControl
+              fullWidth
+              disabled={pedidoSeleccionado.estado === 'cancelado' || cambiandoEtapa}
+              value={pedidoSeleccionado.etapa}
+              onChange={(v) => cambiarEtapa(pedidoSeleccionado, v as Pedido['etapa'])}
+              data={ETAPAS.map((e) => ({ value: e.valor, label: e.etiqueta }))}
+            />
+
+            <Divider label="Productos" labelPosition="left" />
+            <Table striped verticalSpacing="xs">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Producto</Table.Th>
+                  <Table.Th>Cantidad</Table.Th>
+                  <Table.Th>Precio unitario</Table.Th>
+                  <Table.Th>Subtotal</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {pedidoSeleccionado.items.map((item) => (
+                  <Table.Tr key={item.producto_id}>
+                    <Table.Td>{item.producto_nombre}</Table.Td>
+                    <Table.Td>{item.cantidad}</Table.Td>
+                    <Table.Td>{formatoPesos(item.precio_final_unitario)}</Table.Td>
+                    <Table.Td>{formatoPesos(item.subtotal)}</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+            <Group justify="space-between">
+              <Text fw={700} fz={18}>
+                Total: {formatoPesos(pedidoSeleccionado.total)}
+              </Text>
+              <Badge variant="light" color={COLOR_CAE[pedidoSeleccionado.cae_estado]}>
+                CAE: {pedidoSeleccionado.cae_estado}
+              </Badge>
+            </Group>
+
+            {pedidoSeleccionado.estado === 'confirmado' && (
+              <Group justify="flex-end">
+                {pedidoSeleccionado.cae_estado === 'rechazado' && (
+                  <Button
+                    variant="light"
+                    leftSection={<IconRefresh size={16} />}
+                    loading={reintentandoCae === pedidoSeleccionado.id}
+                    onClick={() => reintentarCae(pedidoSeleccionado)}
+                  >
+                    Reintentar CAE
+                  </Button>
+                )}
+                <Button
+                  variant="light"
+                  color="red"
+                  leftSection={<IconTrashX size={16} />}
+                  onClick={() => confirmarCancelacion(pedidoSeleccionado)}
+                >
+                  Cancelar pedido
+                </Button>
+              </Group>
+            )}
+          </Stack>
+        )}
       </Modal>
     </Stack>
   )

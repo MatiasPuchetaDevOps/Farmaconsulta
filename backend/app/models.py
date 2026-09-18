@@ -142,6 +142,7 @@ class Pedido(Base):
     __tablename__ = "pedidos"
     __table_args__ = (
         CheckConstraint("estado IN ('confirmado', 'cancelado')", name="ck_pedido_estado"),
+        CheckConstraint("etapa IN ('a_preparar', 'preparado', 'entregado', 'pagado')", name="ck_pedido_etapa"),
         CheckConstraint("total >= 0", name="ck_pedido_total"),
         CheckConstraint("cae_estado IN ('pendiente', 'aprobado', 'rechazado')", name="ck_pedido_cae_estado"),
     )
@@ -154,6 +155,10 @@ class Pedido(Base):
     plan_afiliado: Mapped[str | None] = mapped_column(String(100))
     metodo_pago: Mapped[str] = mapped_column(String(60), nullable=False)
     estado: Mapped[str] = mapped_column(String(20), nullable=False, default="confirmado")
+    # Etapa de preparación/entrega, independiente de `estado` (que solo distingue
+    # confirmado/cancelado a efectos de stock, caja y CAE). Un pedido cancelado
+    # conserva la última etapa que tenía, solo para referencia.
+    etapa: Mapped[str] = mapped_column(String(20), nullable=False, default="a_preparar")
     total: Mapped[int] = mapped_column(Integer, nullable=False)
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))
     caja_sesion_id: Mapped[int | None] = mapped_column(ForeignKey("caja_sesiones.id"))

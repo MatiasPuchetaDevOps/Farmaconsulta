@@ -1,6 +1,9 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+Etapa = Literal["a_preparar", "preparado", "entregado", "pagado"]
 
 
 class PedidoItemIn(BaseModel):
@@ -40,6 +43,7 @@ class PedidoOut(BaseModel):
     plan_afiliado: str | None = None
     metodo_pago: str
     estado: str
+    etapa: Etapa
     total: int
     caja_sesion_id: int | None = None
     comprobante_numero: str | None = None
@@ -55,3 +59,7 @@ class PedidoOut(BaseModel):
     items: list[PedidoItemOut]
 
     model_config = {"from_attributes": True}
+
+
+class PedidoEtapaIn(BaseModel):
+    etapa: Etapa

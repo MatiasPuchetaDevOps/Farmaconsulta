@@ -139,6 +139,7 @@ export interface Pedido {
   plan_afiliado: string | null
   metodo_pago: string
   estado: 'confirmado' | 'cancelado'
+  etapa: 'a_preparar' | 'preparado' | 'entregado' | 'pagado'
   total: number
   caja_sesion_id: number | null
   comprobante_numero: string | null
