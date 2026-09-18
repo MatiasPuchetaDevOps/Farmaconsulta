@@ -1,5 +1,6 @@
 import { Tabs } from '@mantine/core'
 import {
+  IconBuildingBank,
   IconCalendarTime,
   IconCash,
   IconClipboardPlus,
@@ -12,6 +13,7 @@ import {
 } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { BancosPromocionesAdmin } from './admin/BancosPromocionesAdmin'
 import { CajaAdmin } from './admin/CajaAdmin'
 import { ClientesAdmin } from './admin/ClientesAdmin'
 import { LotesAdmin } from './admin/LotesAdmin'
@@ -28,6 +30,7 @@ type Seccion =
   | 'productos'
   | 'obras-sociales'
   | 'reglas-obra-social'
+  | 'bancos-promociones'
   | 'clientes'
   | 'usuarios'
   | 'lotes'
@@ -60,6 +63,9 @@ export function Administracion() {
         </Tabs.Tab>
         <Tabs.Tab value="obras-sociales" leftSection={<IconStethoscope size={16} />}>
           Obras sociales
+        </Tabs.Tab>
+        <Tabs.Tab value="bancos-promociones" leftSection={<IconBuildingBank size={16} />}>
+          Bancos / promociones
         </Tabs.Tab>
         {esAdmin && (
           <Tabs.Tab value="reglas-obra-social" leftSection={<IconStethoscope size={16} />}>
@@ -96,6 +102,9 @@ export function Administracion() {
       </Tabs.Panel>
       <Tabs.Panel value="obras-sociales">
         <ObrasSocialesAdmin />
+      </Tabs.Panel>
+      <Tabs.Panel value="bancos-promociones">
+        <BancosPromocionesAdmin />
       </Tabs.Panel>
       {esAdmin && (
         <Tabs.Panel value="reglas-obra-social">

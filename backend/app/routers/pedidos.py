@@ -10,7 +10,7 @@ from app.core_logic.validacion_os_simulada import simular_validacion_os
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import CajaMovimiento, CajaSesion, ObraSocialRegla, Pedido, PedidoItem, Producto, Receta, Usuario
-from app.repository import buscar_o_crear_cliente, cargar_planes_dict, lockear_filas_ordenadas
+from app.repository import buscar_o_crear_cliente, cargar_bancos_dict, cargar_planes_dict, lockear_filas_ordenadas
 from app.schemas.pedidos import PedidoIn, PedidoItemOut, PedidoOut
 
 router = APIRouter(prefix="/api/pedidos", tags=["pedidos"], dependencies=[Depends(get_current_user)])
@@ -107,9 +107,11 @@ def crear_pedido(payload: PedidoIn, db: Session = Depends(get_db), actual: Usuar
             db.rollback()
             raise HTTPException(status_code=400, detail="Esta receta ya fue utilizada en otra venta.")
 
-    tabla_planes = cargar_planes_dict(db.get_bind())
+    db_engine = db.get_bind()
+    tabla_planes = cargar_planes_dict(db_engine)
+    tabla_bancos = cargar_bancos_dict(db_engine)
     descuento_os = calculadora.obtener_descuento_os(payload.obra_social, tabla_planes)
-    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago)
+    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago, tabla_bancos)
 
     cliente = buscar_o_crear_cliente(db, payload.cliente_nombre, payload.cliente_tel)
 

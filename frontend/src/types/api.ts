@@ -97,6 +97,13 @@ export interface Plan {
   actualizado_en: string
 }
 
+export interface BancoPromocion {
+  id: number
+  banco: string
+  descuento_banco: number
+  actualizado_en: string
+}
+
 export interface PedidoItemIn {
   producto_id: number
   cantidad: number

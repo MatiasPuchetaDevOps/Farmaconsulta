@@ -2,24 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from app.core_logic.calculadora import METODOS_PAGO_SIN_PROMOCION
 from app.database import engine, get_db
 from app.models import Producto
-from app.repository import cargar_consultas_df, cargar_planes_dict
+from app.repository import cargar_bancos_dict, cargar_consultas_df, cargar_planes_dict
 from app.schemas.catalogos import ProductoOut
 
 router = APIRouter(prefix="/api/catalogos", tags=["catalogos"])
-
-# Mismos 8 métodos de pago que compara calculadora.buscar_mejor_medio_pago
-METODOS_PAGO = [
-    "Efectivo",
-    "Débito",
-    "Banco Provincia",
-    "Billetera Virtual (Modo/Mercado Pago)",
-    "Macro",
-    "Galicia",
-    "Santander",
-    "Nación",
-]
 
 
 def _get_engine() -> Engine:
@@ -56,5 +45,6 @@ def listar_obras_sociales(db_engine: Engine = Depends(_get_engine)):
 
 
 @router.get("/metodos-pago", response_model=list[str])
-def listar_metodos_pago():
-    return METODOS_PAGO
+def listar_metodos_pago(db_engine: Engine = Depends(_get_engine)):
+    tabla_bancos = cargar_bancos_dict(db_engine)
+    return METODOS_PAGO_SIN_PROMOCION + sorted(tabla_bancos.keys())

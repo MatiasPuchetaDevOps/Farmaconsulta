@@ -3,7 +3,7 @@ from sqlalchemy import Engine
 
 from app.core_logic import calculadora
 from app.database import engine
-from app.repository import cargar_productos_df, cargar_planes_dict
+from app.repository import cargar_bancos_dict, cargar_productos_df, cargar_planes_dict
 from app.schemas.calculadora import CalcularRequest, CompararRequest, DesgloseResponse, MedioPagoOut
 
 router = APIRouter(prefix="/api/calculadora", tags=["calculadora"])
@@ -24,11 +24,12 @@ def _precio_lista_vigente(df, producto_nombre: str):
 def calcular(payload: CalcularRequest, db_engine: Engine = Depends(_get_engine)):
     df = cargar_productos_df(db_engine)
     tabla_planes = cargar_planes_dict(db_engine)
+    tabla_bancos = cargar_bancos_dict(db_engine)
 
     precio_lista = _precio_lista_vigente(df, payload.producto_nombre)
 
     descuento_os = calculadora.obtener_descuento_os(payload.obra_social, tabla_planes)
-    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago)
+    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago, tabla_bancos)
 
     precio_tras_os = calculadora.calcular_precio_final(precio_lista, descuento_os, 0.0)
     precio_final = calculadora.calcular_precio_final(precio_lista, descuento_os, descuento_banco)
@@ -54,10 +55,11 @@ def calcular(payload: CalcularRequest, db_engine: Engine = Depends(_get_engine))
 def comparar_medios_pago(payload: CompararRequest, db_engine: Engine = Depends(_get_engine)):
     df = cargar_productos_df(db_engine)
     tabla_planes = cargar_planes_dict(db_engine)
+    tabla_bancos = cargar_bancos_dict(db_engine)
 
     precio_lista = _precio_lista_vigente(df, payload.producto_nombre)
 
-    tabla = calculadora.buscar_mejor_medio_pago(precio_lista, payload.obra_social, tabla_planes)
+    tabla = calculadora.buscar_mejor_medio_pago(precio_lista, payload.obra_social, tabla_planes, tabla_bancos)
 
     return [
         MedioPagoOut(

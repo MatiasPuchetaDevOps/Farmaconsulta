@@ -29,6 +29,11 @@ def cargar_planes_dict(engine: Engine) -> dict[str, float]:
     return dict(zip(df["obra_social"], df["descuento_os"].astype(float)))
 
 
+def cargar_bancos_dict(engine: Engine) -> dict[str, float]:
+    df = pd.read_sql("SELECT banco, descuento_banco FROM banco_promociones", engine)
+    return dict(zip(df["banco"], df["descuento_banco"].astype(float)))
+
+
 def cargar_productos_df(engine: Engine) -> pd.DataFrame:
     """
     Lee el catálogo vigente ('productos', solo activos) como DataFrame, con una

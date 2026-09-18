@@ -5,20 +5,13 @@ from sqlalchemy.orm import Session
 from app.core_logic import calculadora
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Consulta, PlanDescuento, Producto
-from app.repository import buscar_o_crear_cliente, cargar_planes_dict
+from app.models import BancoPromocion, Consulta, PlanDescuento, Producto
+from app.repository import buscar_o_crear_cliente, cargar_bancos_dict, cargar_planes_dict
+from app.schemas.banco_promociones import BancoPromocionIn, BancoPromocionOut
 from app.schemas.consultas import ConsultaIn, ConsultaOut
 from app.schemas.planes import PlanIn, PlanOut
 
 router = APIRouter(prefix="/api", tags=["admin"], dependencies=[Depends(get_current_user)])
-
-# Mismo mapeo que arma banco_promocion en app.py::formulario_nuevo_registro
-BANCO_PROMOCION_POR_METODO = {
-    "Macro": "Macro - Beneficio Select",
-    "Galicia": "Galicia - Promo MODO",
-    "Santander": "Santander - Especial Farmacias",
-    "Nación": "BNA+ Semana Nación",
-}
 
 
 @router.get("/planes", response_model=list[PlanOut])
@@ -55,20 +48,58 @@ def eliminar_plan(plan_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@router.get("/bancos-promociones", response_model=list[BancoPromocionOut])
+def listar_bancos_promociones(db: Session = Depends(get_db)):
+    return db.query(BancoPromocion).order_by(BancoPromocion.banco).all()
+
+
+@router.post("/bancos-promociones", response_model=BancoPromocionOut)
+def cargar_banco_promocion(payload: BancoPromocionIn, db: Session = Depends(get_db)):
+    banco = payload.banco.strip().title()
+    if not banco:
+        raise HTTPException(status_code=400, detail="El nombre del banco no puede estar vacío.")
+
+    descuento_banco = payload.descuento_pct / 100
+
+    promocion = db.query(BancoPromocion).filter(BancoPromocion.banco == banco).first()
+    if promocion is None:
+        promocion = BancoPromocion(banco=banco, descuento_banco=descuento_banco)
+        db.add(promocion)
+    else:
+        promocion.descuento_banco = descuento_banco
+
+    db.commit()
+    db.refresh(promocion)
+    return promocion
+
+
+@router.delete("/bancos-promociones/{promocion_id}", status_code=204)
+def eliminar_banco_promocion(promocion_id: int, db: Session = Depends(get_db)):
+    promocion = db.get(BancoPromocion, promocion_id)
+    if promocion is None:
+        raise HTTPException(status_code=404, detail="Promoción bancaria no encontrada.")
+    db.delete(promocion)
+    db.commit()
+
+
 @router.post("/consultas", response_model=ConsultaOut)
 def cargar_consulta(payload: ConsultaIn, db: Session = Depends(get_db)):
     producto = db.get(Producto, payload.producto_id)
     if producto is None or not producto.activo:
         raise HTTPException(status_code=404, detail="Producto no encontrado o dado de baja.")
 
-    tabla_planes = cargar_planes_dict(db.get_bind())
+    db_engine = db.get_bind()
+    tabla_planes = cargar_planes_dict(db_engine)
+    tabla_bancos = cargar_bancos_dict(db_engine)
 
     # El descuento y el precio final salen de calculadora.py, nunca se calculan a mano acá
     descuento_os = calculadora.obtener_descuento_os(payload.obra_social, tabla_planes)
-    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago)
+    descuento_banco = calculadora.obtener_descuento_banco(payload.metodo_pago, tabla_bancos)
     precio_final = calculadora.calcular_precio_final(producto.precio_lista, descuento_os, descuento_banco)
 
-    banco_promocion = BANCO_PROMOCION_POR_METODO.get(payload.metodo_pago, "Sin Promo")
+    # La etiqueta de campaña ya no depende de una lista fija de bancos: cualquier
+    # banco cargado en banco_promociones (con descuento > 0) se muestra como promo.
+    banco_promocion = f"{payload.metodo_pago.strip().title()} - Promoción bancaria" if descuento_banco > 0 else "Sin Promo"
     cliente = buscar_o_crear_cliente(db, payload.cliente_nombre, payload.cliente_tel)
 
     siguiente_id_consulta = (db.query(func.coalesce(func.max(Consulta.id_consulta), 0)).scalar() or 0) + 1

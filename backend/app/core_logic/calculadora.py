@@ -63,39 +63,59 @@ def obtener_descuento_os(obra_social, tabla_planes=None):
     return DESCUENTOS_OS_POR_DEFECTO.get(obra_social_normalizada, DESCUENTO_OS_RESTO)
 
 
-def obtener_descuento_banco(metodo_pago):
+# Regla original del proyecto: 4 medios de pago que son un banco con
+# promoción. Se usa como tabla por defecto cuando obtener_descuento_banco()
+# no recibe una tabla de bancos propia, para no romper el comportamiento ya
+# validado (los tests y el resto del código que no pasan tabla_bancos).
+DESCUENTOS_BANCO_POR_DEFECTO = {
+    "Macro": 0.10,
+    "Galicia": 0.15,
+    "Santander": 0.20,
+    "Nación": 0.25,
+}
+
+# Medios de pago que nunca tienen promoción bancaria asociada (no son un
+# banco con descuento, son formas de cobro sin beneficio).
+METODOS_PAGO_SIN_PROMOCION = [
+    "Efectivo",
+    "Débito",
+    "Banco Provincia",
+    "Billetera Virtual (Modo/Mercado Pago)",
+]
+
+
+def obtener_descuento_banco(metodo_pago, tabla_bancos=None):
     """
     Devuelve el descuento por promoción bancaria según el medio de pago
     utilizado. Solo los medios de pago que son un banco con promoción
-    (Macro, Galicia, Santander, Nación) tienen descuento; el resto
-    (efectivo, débito, banco provincia, billetera virtual) no tiene
-    promoción asociada.
+    tienen descuento; el resto (efectivo, débito, banco provincia,
+    billetera virtual) no tiene promoción asociada.
 
     Parámetros:
         metodo_pago (str): medio de pago utilizado en la consulta.
+        tabla_bancos (dict, opcional): mapea banco -> descuento (ej.
+            {"Macro": 0.10, "ICBC": 0.12}), cargada desde banco_promociones.
+            Sirve para poder sumar o editar bancos sin modificar esta
+            función. Si no se pasa, se usa la regla original del proyecto
+            (Macro 10%, Galicia 15%, Santander 20%, Nación 25%).
 
     Devuelve:
-        float: descuento bancario (0.0, 0.10, 0.15, 0.20 o 0.25).
+        float: descuento bancario. Si el medio de pago no está en la tabla,
+        se asume que no tiene promoción (0.0).
     """
     metodo_pago_normalizado = metodo_pago.strip().title()
 
-    descuentos_por_banco = {
-        "Macro": 0.10,
-        "Galicia": 0.15,
-        "Santander": 0.20,
-        "Nación": 0.25,
-    }
+    if tabla_bancos is not None:
+        return tabla_bancos.get(metodo_pago_normalizado, 0.0)
 
-    # Si el método de pago no está en la tabla (efectivo, transferencia, no especificado, etc.)
-    # asumimos que no tiene promoción bancaria asociada
-    return descuentos_por_banco.get(metodo_pago_normalizado, 0.0)
+    return DESCUENTOS_BANCO_POR_DEFECTO.get(metodo_pago_normalizado, 0.0)
 
 
-def buscar_mejor_medio_pago(precio_lista, obra_social, tabla_planes=None):
+def buscar_mejor_medio_pago(precio_lista, obra_social, tabla_planes=None, tabla_bancos=None):
     """
-    Prueba los 8 métodos de pago disponibles para una consulta y arma una
-    tabla comparando el precio final que resulta de cada uno, para que el
-    cliente vea con qué medio de pago le conviene abonar.
+    Prueba todos los métodos de pago disponibles para una consulta y arma
+    una tabla comparando el precio final que resulta de cada uno, para que
+    el cliente vea con qué medio de pago le conviene abonar.
 
     Parámetros:
         precio_lista (int o float): precio de lista del producto.
@@ -103,6 +123,9 @@ def buscar_mejor_medio_pago(precio_lista, obra_social, tabla_planes=None):
         tabla_planes (dict, opcional): ver obtener_descuento_os(). Se lo
             pasamos de largo para poder cotizar también obras sociales/planes
             nuevos, no solo las 3 reglas originales.
+        tabla_bancos (dict, opcional): ver obtener_descuento_banco(). Define
+            también qué bancos se comparan (además de los 4 medios de pago
+            sin promoción, que siempre se incluyen).
 
     Devuelve:
         DataFrame con columnas metodo_pago, descuento_banco, precio_final y
@@ -113,20 +136,12 @@ def buscar_mejor_medio_pago(precio_lista, obra_social, tabla_planes=None):
     # Precio de referencia sin ninguna promoción bancaria, para poder calcular el ahorro
     precio_sin_promocion = calcular_precio_final(precio_lista, descuento_os, 0.0)
 
-    metodos_pago = [
-        "Efectivo",
-        "Débito",
-        "Banco Provincia",
-        "Billetera Virtual (Modo/Mercado Pago)",
-        "Macro",
-        "Galicia",
-        "Santander",
-        "Nación",
-    ]
+    bancos = list(tabla_bancos.keys()) if tabla_bancos is not None else list(DESCUENTOS_BANCO_POR_DEFECTO.keys())
+    metodos_pago = METODOS_PAGO_SIN_PROMOCION + bancos
 
     filas = []
     for metodo in metodos_pago:
-        descuento_banco = obtener_descuento_banco(metodo)
+        descuento_banco = obtener_descuento_banco(metodo, tabla_bancos)
         precio_final = calcular_precio_final(precio_lista, descuento_os, descuento_banco)
         ahorro = precio_sin_promocion - precio_final
 

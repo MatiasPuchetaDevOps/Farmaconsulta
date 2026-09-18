@@ -91,6 +91,18 @@ class PlanDescuento(Base):
     actualizado_en: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
 
+class BancoPromocion(Base):
+    __tablename__ = "banco_promociones"
+    __table_args__ = (
+        CheckConstraint("descuento_banco >= 0 AND descuento_banco <= 1", name="ck_banco_promocion_rango"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    banco: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    descuento_banco: Mapped[float] = mapped_column(Numeric(4, 3), nullable=False)
+    actualizado_en: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
 class Consulta(Base):
     __tablename__ = "consultas"
     __table_args__ = (
