@@ -19,3 +19,11 @@ class ConsultaOut(BaseModel):
     obra_social: str
     metodo_pago: str
     precio_final: int
+
+
+class ConsultaPublicaIn(BaseModel):
+    obra_social: str
+    plan_afiliado: str | None = None
+    producto_id: int
+    metodo_pago: str
+    fecha: date

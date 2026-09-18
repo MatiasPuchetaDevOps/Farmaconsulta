@@ -4,18 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routers import (
     admin,
+    ajuste_precios,
     analisis,
     auth,
     caja,
     calculadora,
     catalogos,
     clientes,
+    consultas_publicas,
     lotes,
     obras_sociales_reglas,
     pedidos,
     productos,
     recetas,
-    sincronizacion,
     stock,
     usuarios,
 )
@@ -32,6 +33,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(catalogos.router)
+app.include_router(consultas_publicas.router)
 app.include_router(calculadora.router)
 app.include_router(stock.router)
 app.include_router(analisis.router)
@@ -44,7 +46,7 @@ app.include_router(caja.router)
 app.include_router(lotes.router)
 app.include_router(obras_sociales_reglas.router)
 app.include_router(recetas.router)
-app.include_router(sincronizacion.router)
+app.include_router(ajuste_precios.router)
 
 
 @app.get("/api/health")

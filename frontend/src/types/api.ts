@@ -291,17 +291,16 @@ export interface PropuestaPrecio {
   precio_nuevo: number
 }
 
-export interface SincronizacionPreview {
+export interface AjustePrecioPreview {
   id: number
   filtro_categoria: string | null
-  variacion_pct_min: number
-  variacion_pct_max: number
+  variacion_pct: number
   propuesta: PropuestaPrecio[]
   aplicada: boolean
   creado_en: string
 }
 
-export interface ItemAplicado {
+export interface ItemAjustado {
   producto_id: number
   producto_nombre: string
   precio_anterior: number
@@ -310,17 +309,16 @@ export interface ItemAplicado {
   motivo_omision: string | null
 }
 
-export interface SincronizacionResultado {
+export interface AjustePrecioResultado {
   preview_id: number
-  items: ItemAplicado[]
+  items: ItemAjustado[]
 }
 
-export interface SincronizacionHistorial {
+export interface AjustePrecioHistorial {
   id: number
   ejecutada_por_id: number
   cantidad_productos: number
-  variacion_pct_min: number
-  variacion_pct_max: number
+  variacion_pct: number
   aplicada_en: string
 }
 
@@ -334,11 +332,21 @@ export interface ConsultaIn {
   fecha: string
 }
 
+export interface ConsultaPublicaIn {
+  obra_social: string
+  plan_afiliado?: string | null
+  producto_id: number
+  metodo_pago: string
+  fecha: string
+}
+
 export interface MetricasGenerales {
   total_consultas: number
   precio_lista_promedio: number
   ahorro_promedio: number
   consultas_stock_critico: number
+  consultas_mostrador: number
+  consultas_publicas: number
 }
 
 export interface ConteoCategoria {

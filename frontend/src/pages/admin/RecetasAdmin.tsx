@@ -1,6 +1,6 @@
 import { ActionIcon, Autocomplete, Badge, Button, Card, Group, Modal, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconCheck, IconPlus, IconX } from '@tabler/icons-react'
+import { IconCheck, IconPlus, IconSearch, IconX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { Cliente, Producto, Receta, RecetaIn } from '../../types/api'
@@ -9,6 +9,7 @@ const VACIO: RecetaIn = { cliente_nombre: '', cliente_tel: '', producto_id: 0, m
 
 export function RecetasAdmin() {
   const [pendientes, setPendientes] = useState<Receta[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [form, setForm] = useState<RecetaIn>(VACIO)
@@ -87,12 +88,24 @@ export function RecetasAdmin() {
     }
   }
 
+  const pendientesFiltradas = pendientes.filter((r) => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return true
+    return r.cliente_nombre.toLowerCase().includes(q) || r.producto_nombre.toLowerCase().includes(q)
+  })
+
   return (
     <Stack gap="lg">
       <Card>
-        <Title order={4} mb="md">
-          Recetas pendientes ({pendientes.length})
-        </Title>
+        <Group justify="space-between" mb="md" wrap="wrap">
+          <Title order={4}>Recetas pendientes ({pendientesFiltradas.length} de {pendientes.length})</Title>
+          <TextInput
+            placeholder="Buscar por cliente o producto"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+        </Group>
         <Table striped highlightOnHover verticalSpacing="xs">
           <Table.Thead>
             <Table.Tr>
@@ -104,7 +117,7 @@ export function RecetasAdmin() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {pendientes.map((r) => (
+            {pendientesFiltradas.map((r) => (
               <Table.Tr key={r.id}>
                 <Table.Td>{r.cliente_nombre}</Table.Td>
                 <Table.Td>{r.producto_nombre}</Table.Td>

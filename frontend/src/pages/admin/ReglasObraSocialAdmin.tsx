@@ -1,7 +1,7 @@
 import { ActionIcon, Autocomplete, Badge, Button, Group, Modal, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconPlus, IconTrashX } from '@tabler/icons-react'
+import { IconEdit, IconPlus, IconSearch, IconTrashX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { ObraSocialRegla, ObraSocialReglaIn } from '../../types/api'
@@ -18,6 +18,7 @@ const VACIO: ObraSocialReglaIn = { obra_social: '', plan_afiliado: '', resultado
 
 export function ReglasObraSocialAdmin() {
   const [reglas, setReglas] = useState<ObraSocialRegla[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [obrasSociales, setObrasSociales] = useState<string[]>([])
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<ObraSocialRegla | null>(null)
@@ -93,13 +94,23 @@ export function ReglasObraSocialAdmin() {
     })
   }
 
+  const reglasFiltradas = reglas.filter((r) => r.obra_social.toLowerCase().includes(busqueda.trim().toLowerCase()))
+
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={4}>Reglas de validación de obra social ({reglas.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nueva regla
-        </Button>
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Reglas de validación de obra social ({reglasFiltradas.length} de {reglas.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar por obra social"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nueva regla
+          </Button>
+        </Group>
       </Group>
       <Text size="sm" c="dimmed">
         Simulan el resultado de validar la cobertura contra la obra social/prepaga. Sin una regla configurada, se aprueba por defecto.
@@ -117,7 +128,7 @@ export function ReglasObraSocialAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {reglas.map((r) => (
+          {reglasFiltradas.map((r) => (
             <Table.Tr key={r.id} opacity={r.activo ? 1 : 0.5}>
               <Table.Td>{r.obra_social}</Table.Td>
               <Table.Td>{r.plan_afiliado ?? <Text c="dimmed">Cualquiera</Text>}</Table.Td>

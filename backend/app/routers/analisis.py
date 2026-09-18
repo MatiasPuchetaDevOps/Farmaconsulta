@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 from fastapi import APIRouter, Depends
 from sqlalchemy import Engine
@@ -35,8 +37,46 @@ def _serie_a_conteos(serie) -> list[ConteoCategoria]:
 
 
 @router.get("/dashboard", response_model=DashboardOut)
-def dashboard(_: Usuario = Depends(get_current_user), db_engine: Engine = Depends(_get_engine)):
-    df = cargar_consultas_df(db_engine)
+def dashboard(
+    origen: Literal["mostrador", "publico"] | None = None,
+    _: Usuario = Depends(get_current_user),
+    db_engine: Engine = Depends(_get_engine),
+):
+    df_completo = cargar_consultas_df(db_engine)
+    conteo_por_origen = df_completo["origen"].value_counts()
+
+    # El filtro por origen recorta todos los gráficos, pero el desglose
+    # mostrador/público de las métricas generales siempre es sobre el total,
+    # para poder comparar aunque se esté mirando un solo origen.
+    df = df_completo if origen is None else df_completo[df_completo["origen"] == origen]
+
+    if df.empty:
+        # Con un origen recién agregado (ej. "publico" antes de la primera
+        # consulta pública) el subset queda vacío: varias funciones de
+        # descriptivo.py devuelven NaN o dividen por cero sobre un DataFrame
+        # vacío, así que se corta acá con un dashboard "sin datos" en vez de
+        # propagar ese error.
+        return DashboardOut(
+            metricas=MetricasGenerales(
+                total_consultas=0,
+                precio_lista_promedio=0.0,
+                ahorro_promedio=0.0,
+                consultas_stock_critico=0,
+                consultas_mostrador=int(conteo_por_origen.get("mostrador", 0)),
+                consultas_publicas=int(conteo_por_origen.get("publico", 0)),
+            ),
+            top_obras_sociales=[],
+            top_productos=[],
+            consultas_por_dia=[],
+            distribucion_precio_lista=[],
+            stock_promedio_categoria=[],
+            stock_critico=[],
+            dispersion_precio=[],
+            descuento_por_dia=[],
+            boxplot_categoria=[],
+            correlacion=MatrizCorrelacion(columnas=[], valores=[]),
+            proporcion_con_promocion=[],
+        )
 
     # --- Métricas generales (Pantalla 2 de app.py) ---
     dispersion = descriptivo.dispersion_precio_lista(df)
@@ -48,6 +88,8 @@ def dashboard(_: Usuario = Depends(get_current_user), db_engine: Engine = Depend
         precio_lista_promedio=float(dispersion["media"]),
         ahorro_promedio=float(ahorro_por_metodo.mean()),
         consultas_stock_critico=stock_critico_df.shape[0],
+        consultas_mostrador=int(conteo_por_origen.get("mostrador", 0)),
+        consultas_publicas=int(conteo_por_origen.get("publico", 0)),
     )
 
     # --- Gráfico 01: top 15 obras sociales ---

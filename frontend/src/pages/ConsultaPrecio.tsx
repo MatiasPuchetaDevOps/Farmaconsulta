@@ -56,31 +56,49 @@ export function ConsultaPrecio() {
       .catch(() => setError('No se pudieron cargar los datos para la consulta. Probá recargar la página.'))
   }, [])
 
-  function registrarConsulta() {
-    const productoSeleccionado = productos.find((p) => p.producto_nombre === producto)
-    if (!productoSeleccionado || !obraSocial || !metodoPago) return
+  function registrarConsulta(productoId: number) {
+    const fecha = new Date().toISOString().slice(0, 10)
 
+    if (usuario) {
+      // Mostrador (con sesión iniciada): igual que antes, con cliente y aviso si falla.
+      api
+        .post('/consultas', {
+          cliente_nombre: clienteNombre.trim() || 'Consulta mostrador',
+          cliente_tel: clienteTel.trim(),
+          obra_social: obraSocial,
+          plan_afiliado: 'Plan General',
+          producto_id: productoId,
+          metodo_pago: metodoPago,
+          fecha,
+        })
+        .catch(() =>
+          notifications.show({
+            title: 'No se sumó a las estadísticas',
+            message: 'El precio se calculó bien, pero esta consulta no se pudo registrar.',
+            color: 'yellow',
+          }),
+        )
+      return
+    }
+
+    // Pantalla pública sin login: se registra aparte (origen "publico", sin
+    // nombre/teléfono) para no mezclar la estadística del mostrador con la
+    // del público, y en silencio -- a un visitante anónimo no le interesa
+    // si esto se pudo guardar o no.
     api
-      .post('/consultas', {
-        cliente_nombre: clienteNombre.trim() || 'Consulta mostrador',
-        cliente_tel: clienteTel.trim(),
+      .post('/consultas-publicas', {
         obra_social: obraSocial,
-        plan_afiliado: 'Plan General',
-        producto_id: productoSeleccionado.id,
+        plan_afiliado: null,
+        producto_id: productoId,
         metodo_pago: metodoPago,
-        fecha: new Date().toISOString().slice(0, 10),
+        fecha,
       })
-      .catch(() =>
-        notifications.show({
-          title: 'No se sumó a las estadísticas',
-          message: 'El precio se calculó bien, pero esta consulta no se pudo registrar.',
-          color: 'yellow',
-        }),
-      )
+      .catch(() => {})
   }
 
   async function calcular() {
     if (!producto || !obraSocial || !metodoPago) return
+    const productoSeleccionado = productos.find((p) => p.producto_nombre === producto)
     setCargando(true)
     setError(null)
     try {
@@ -92,7 +110,7 @@ export function ConsultaPrecio() {
       setDesglose(resDesglose.data)
       setComparacion(resComparacion.data)
       setStock(resStock.data)
-      if (usuario) registrarConsulta()
+      if (productoSeleccionado) registrarConsulta(productoSeleccionado.id)
     } catch {
       setError('No se pudo calcular el precio. Probá de nuevo.')
     } finally {
@@ -135,11 +153,9 @@ export function ConsultaPrecio() {
             <Button onClick={calcular} loading={cargando} leftSection={<IconSearch size={16} />} mt="xs">
               Calcular precio
             </Button>
-            {usuario && (
-              <Text size="xs" c="dimmed" ta="center" mt={-8}>
-                Este cálculo se suma a las estadísticas.
-              </Text>
-            )}
+            <Text size="xs" c="dimmed" ta="center" mt={-8}>
+              Este cálculo se suma a las estadísticas.
+            </Text>
             {error && (
               <Alert color="red" variant="light">
                 {error}

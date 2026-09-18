@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Card, Group, Modal, NumberInput, Select, SimpleGrid, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle, IconCash, IconLock } from '@tabler/icons-react'
+import { IconAlertCircle, IconCash, IconLock, IconSearch } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -30,6 +30,9 @@ export function CajaAdmin() {
   const [montoDeclarado, setMontoDeclarado] = useState(0)
   const [observacionesCierre, setObservacionesCierre] = useState('')
   const [cerrando, setCerrando] = useState(false)
+
+  const [busquedaMovimientos, setBusquedaMovimientos] = useState('')
+  const [busquedaHistorial, setBusquedaHistorial] = useState('')
 
   function cargarCajaActual() {
     api
@@ -192,9 +195,15 @@ export function CajaAdmin() {
           </Card>
 
           <Card>
-            <Title order={4} mb="md">
-              Movimientos
-            </Title>
+            <Group justify="space-between" mb="md" wrap="wrap">
+              <Title order={4}>Movimientos</Title>
+              <TextInput
+                placeholder="Buscar por concepto o usuario"
+                leftSection={<IconSearch size={16} />}
+                value={busquedaMovimientos}
+                onChange={(e) => setBusquedaMovimientos(e.currentTarget.value)}
+              />
+            </Group>
             <Table striped highlightOnHover verticalSpacing="xs">
               <Table.Thead>
                 <Table.Tr>
@@ -207,7 +216,13 @@ export function CajaAdmin() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {cajaActual.movimientos.map((m) => (
+                {cajaActual.movimientos
+                  .filter((m) => {
+                    const q = busquedaMovimientos.trim().toLowerCase()
+                    if (!q) return true
+                    return m.concepto.toLowerCase().includes(q) || m.usuario_username.toLowerCase().includes(q)
+                  })
+                  .map((m) => (
                   <Table.Tr key={m.id}>
                     <Table.Td>{new Date(m.creado_en).toLocaleString('es-AR')}</Table.Td>
                     <Table.Td>{m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}</Table.Td>
@@ -232,9 +247,15 @@ export function CajaAdmin() {
 
       {esAdmin && (
         <Card>
-          <Title order={4} mb="md">
-            Historial de cajas cerradas
-          </Title>
+          <Group justify="space-between" mb="md" wrap="wrap">
+            <Title order={4}>Historial de cajas cerradas</Title>
+            <TextInput
+              placeholder="Buscar por usuario"
+              leftSection={<IconSearch size={16} />}
+              value={busquedaHistorial}
+              onChange={(e) => setBusquedaHistorial(e.currentTarget.value)}
+            />
+          </Group>
           <Table striped highlightOnHover verticalSpacing="xs">
             <Table.Thead>
               <Table.Tr>
@@ -248,7 +269,13 @@ export function CajaAdmin() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {historial.map((s) => (
+              {historial
+                .filter((s) => {
+                  const q = busquedaHistorial.trim().toLowerCase()
+                  if (!q) return true
+                  return s.abierta_por.toLowerCase().includes(q) || (s.cerrada_por ?? '').toLowerCase().includes(q)
+                })
+                .map((s) => (
                 <Table.Tr key={s.id}>
                   <Table.Td>{new Date(s.abierta_en).toLocaleString('es-AR')}</Table.Td>
                   <Table.Td>{s.cerrada_en ? new Date(s.cerrada_en).toLocaleString('es-AR') : '—'}</Table.Td>

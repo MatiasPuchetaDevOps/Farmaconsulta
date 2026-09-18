@@ -109,7 +109,9 @@ class Consulta(Base):
         CheckConstraint("precio_lista >= 0", name="ck_consulta_precio_lista"),
         CheckConstraint("precio_final >= 0", name="ck_consulta_precio_final"),
         CheckConstraint("stock_disponible >= 0", name="ck_consulta_stock"),
+        CheckConstraint("origen IN ('mostrador', 'publico')", name="ck_consulta_origen"),
         Index("ix_consultas_producto_fecha", "producto_nombre", "fecha"),
+        Index("ix_consultas_origen", "origen"),
     )
 
     id_consulta: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
@@ -132,6 +134,7 @@ class Consulta(Base):
     categoria: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     requiere_receta: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     precio_final: Mapped[int] = mapped_column(Integer, nullable=False)
+    origen: Mapped[str] = mapped_column(String(20), nullable=False, server_default="mostrador")
     creado_en: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
@@ -280,25 +283,23 @@ class ObraSocialRegla(Base):
     actualizado_en: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
 
-class SyncPreciosPreview(Base):
-    __tablename__ = "sync_precios_preview"
+class AjustePrecioPreview(Base):
+    __tablename__ = "ajuste_precios_preview"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     creado_por_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
     filtro_categoria: Mapped[str | None] = mapped_column(String(100))
-    variacion_pct_min: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
-    variacion_pct_max: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    variacion_pct: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
     propuesta: Mapped[list] = mapped_column(JSON, nullable=False)
     aplicada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     creado_en: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
-class SyncPreciosHistorial(Base):
-    __tablename__ = "sync_precios_historial"
+class AjustePrecioHistorial(Base):
+    __tablename__ = "ajuste_precios_historial"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ejecutada_por_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
     cantidad_productos: Mapped[int] = mapped_column(Integer, nullable=False)
-    variacion_pct_min: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
-    variacion_pct_max: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    variacion_pct: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
     aplicada_en: Mapped[datetime] = mapped_column(server_default=func.now())

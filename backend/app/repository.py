@@ -1,11 +1,13 @@
+from datetime import date
 from typing import TypeVar
 
 import pandas as pd
-from sqlalchemy import Engine
+from sqlalchemy import Engine, func
 from sqlalchemy.orm import Session
 
+from app.core_logic import calculadora
 from app.core_logic.limpieza import crear_variables_temporales
-from app.models import Cliente
+from app.models import Cliente, Consulta, Producto
 
 ModeloConId = TypeVar("ModeloConId")
 
@@ -73,10 +75,67 @@ def buscar_o_crear_cliente(db: Session, nombre: str, telefono: str) -> Cliente:
     return cliente
 
 
+def crear_consulta(
+    db: Session,
+    *,
+    producto: Producto,
+    obra_social: str,
+    plan_afiliado: str | None,
+    metodo_pago: str,
+    fecha: date,
+    origen: str,
+    cliente_ref_id: int | None,
+    cliente_nombre: str,
+    cliente_tel: str | None,
+) -> Consulta:
+    """
+    Arma (sin agregar a la sesión ni commitear) una fila de Consulta con el
+    precio final ya calculado. Se comparte entre el registro de mostrador
+    (admin.py, origen="mostrador") y la consulta pública sin login
+    (consultas_publicas.py, origen="publico") para no duplicar el cálculo de
+    descuentos ni la lógica de numeración de ids.
+    """
+    db_engine = db.get_bind()
+    tabla_planes = cargar_planes_dict(db_engine)
+    tabla_bancos = cargar_bancos_dict(db_engine)
+
+    descuento_os = calculadora.obtener_descuento_os(obra_social, tabla_planes)
+    descuento_banco = calculadora.obtener_descuento_banco(metodo_pago, tabla_bancos)
+    precio_final = calculadora.calcular_precio_final(producto.precio_lista, descuento_os, descuento_banco)
+    banco_promocion = f"{metodo_pago.strip().title()} - Promoción bancaria" if descuento_banco > 0 else "Sin Promo"
+
+    siguiente_id_consulta = (db.query(func.coalesce(func.max(Consulta.id_consulta), 0)).scalar() or 0) + 1
+    siguiente_cliente_id = (db.query(func.coalesce(func.max(Consulta.cliente_id), 0)).scalar() or 0) + 1
+
+    return Consulta(
+        id_consulta=siguiente_id_consulta,
+        fecha=fecha,
+        cliente_id=siguiente_cliente_id,
+        cliente_ref_id=cliente_ref_id,
+        cliente_nombre=cliente_nombre,
+        cliente_tel=cliente_tel or "",
+        obra_social=obra_social,
+        plan_afiliado=(plan_afiliado or "").strip(),
+        producto_id=producto.id,
+        producto_nombre=producto.producto_nombre,
+        droga_generica=producto.droga_generica or "Droga Genérica",
+        precio_lista=producto.precio_lista,
+        descuento_os=descuento_os,
+        metodo_pago=metodo_pago,
+        descuento_banco=descuento_banco,
+        banco_promocion=banco_promocion,
+        stock_disponible=producto.stock_disponible,
+        categoria=producto.categoria,
+        requiere_receta=producto.requiere_receta,
+        precio_final=precio_final,
+        origen=origen,
+    )
+
+
 def lockear_filas_ordenadas(db: Session, modelo: type[ModeloConId], ids: list[int]) -> dict[int, ModeloConId | None]:
     """
     Lockea filas de `modelo` por id, siempre en orden ascendente, para que dos
-    transacciones que tocan filas superpuestas (pedidos.py, sincronizacion.py)
+    transacciones que tocan filas superpuestas (pedidos.py, ajuste_precios.py)
     nunca tomen los locks en orden cruzado y deadlockeen.
     """
     filas: dict[int, ModeloConId | None] = {}

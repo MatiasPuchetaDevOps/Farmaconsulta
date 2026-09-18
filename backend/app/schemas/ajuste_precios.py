@@ -11,17 +11,15 @@ class PropuestaPrecio(BaseModel):
     precio_nuevo: int
 
 
-class SincronizacionPreviewIn(BaseModel):
-    pct_min: float = -5.0
-    pct_max: float = 10.0
+class AjustePrecioIn(BaseModel):
+    pct: float = Field(description="Porcentaje de ajuste a aplicar (negativo = baja de precio).")
     categoria: str | None = None
 
 
-class SincronizacionPreviewOut(BaseModel):
+class AjustePrecioPreviewOut(BaseModel):
     id: int
     filtro_categoria: str | None = None
-    variacion_pct_min: float
-    variacion_pct_max: float
+    variacion_pct: float
     propuesta: list[PropuestaPrecio]
     aplicada: bool
     creado_en: datetime
@@ -29,7 +27,7 @@ class SincronizacionPreviewOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ItemAplicado(BaseModel):
+class ItemAjustado(BaseModel):
     producto_id: int
     producto_nombre: str
     precio_anterior: int
@@ -38,17 +36,16 @@ class ItemAplicado(BaseModel):
     motivo_omision: str | None = None
 
 
-class SincronizacionResultado(BaseModel):
+class AjustePrecioResultado(BaseModel):
     preview_id: int
-    items: list[ItemAplicado]
+    items: list[ItemAjustado]
 
 
-class SincronizacionHistorialOut(BaseModel):
+class AjustePrecioHistorialOut(BaseModel):
     id: int
     ejecutada_por_id: int
     cantidad_productos: int
-    variacion_pct_min: float
-    variacion_pct_max: float
+    variacion_pct: float
     aplicada_en: datetime
 
     model_config = {"from_attributes": True}

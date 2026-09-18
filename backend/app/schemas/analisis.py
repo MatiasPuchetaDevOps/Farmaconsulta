@@ -8,6 +8,8 @@ class MetricasGenerales(BaseModel):
     precio_lista_promedio: float
     ahorro_promedio: float
     consultas_stock_critico: int
+    consultas_mostrador: int
+    consultas_publicas: int
 
 
 class ConteoCategoria(BaseModel):

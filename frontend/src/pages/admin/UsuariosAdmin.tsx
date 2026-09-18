@@ -1,7 +1,7 @@
 import { ActionIcon, Alert, Badge, Button, Checkbox, Group, Modal, PasswordInput, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle, IconEdit, IconPlus, IconUserX } from '@tabler/icons-react'
+import { IconAlertCircle, IconEdit, IconPlus, IconSearch, IconUserX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -11,6 +11,7 @@ export function UsuariosAdmin() {
   const { usuario: sesionActual } = useAuth()
   const esAdmin = sesionActual?.es_admin ?? false
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<UsuarioAdmin | null>(null)
 
@@ -104,15 +105,29 @@ export function UsuariosAdmin() {
     cargarUsuarios()
   }
 
+  const usuariosFiltrados = usuarios.filter((u) => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return true
+    return u.username.toLowerCase().includes(q) || (u.nombre_completo ?? '').toLowerCase().includes(q)
+  })
+
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={4}>Usuarios del personal ({usuarios.length})</Title>
-        {esAdmin && (
-          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-            Nuevo usuario
-          </Button>
-        )}
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Usuarios del personal ({usuariosFiltrados.length} de {usuarios.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar por usuario o nombre"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          {esAdmin && (
+            <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+              Nuevo usuario
+            </Button>
+          )}
+        </Group>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -126,7 +141,7 @@ export function UsuariosAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {usuarios.map((u) => {
+          {usuariosFiltrados.map((u) => {
             const esUnoMismo = u.username === sesionActual?.username
             const puedeEditar = esAdmin || esUnoMismo
             return (

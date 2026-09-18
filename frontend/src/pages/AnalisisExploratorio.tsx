@@ -1,10 +1,12 @@
-import { Alert, Card, Center, Group, Loader, SimpleGrid, Stack, Table, Text, ThemeIcon, Title } from '@mantine/core'
+import { Alert, Card, Center, Group, Loader, SegmentedControl, SimpleGrid, Stack, Table, Text, ThemeIcon, Title } from '@mantine/core'
 import {
   IconAlertCircle,
   IconAlertTriangle,
+  IconBuildingStore,
   IconCoin,
   IconReceipt,
   IconReportMoney,
+  IconWorld,
 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
@@ -46,16 +48,23 @@ function TarjetaMetrica({
   )
 }
 
+type Origen = 'todas' | 'mostrador' | 'publico'
+
 export function AnalisisExploratorio() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [origen, setOrigen] = useState<Origen>('todas')
+  const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
+    setCargando(true)
+    setError(null)
     api
-      .get<Dashboard>('/analisis/dashboard')
+      .get<Dashboard>('/analisis/dashboard', { params: origen === 'todas' ? undefined : { origen } })
       .then((res) => setDashboard(res.data))
       .catch(() => setError('No se pudo cargar el análisis exploratorio.'))
-  }, [])
+      .finally(() => setCargando(false))
+  }, [origen])
 
   if (error)
     return (
@@ -75,13 +84,44 @@ export function AnalisisExploratorio() {
 
   return (
     <Stack>
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
+      <Group justify="space-between" wrap="wrap">
+        <Text size="sm" c="dimmed">
+          Mostrador: personal con sesión iniciada. Público: consultas sin login (RF-07), sin datos del cliente.
+        </Text>
+        <SegmentedControl
+          value={origen}
+          onChange={(v) => setOrigen(v as Origen)}
+          disabled={cargando}
+          data={[
+            { label: 'Todas', value: 'todas' },
+            { label: 'Mostrador', value: 'mostrador' },
+            { label: 'Público', value: 'publico' },
+          ]}
+        />
+      </Group>
+
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+        <TarjetaMetrica
+          icono={<IconBuildingStore size={22} />}
+          color="indigo"
+          etiqueta="Consultas de mostrador"
+          valor={metricas.consultas_mostrador.toLocaleString('es-AR')}
+        />
+        <TarjetaMetrica
+          icono={<IconWorld size={22} />}
+          color="cyan"
+          etiqueta="Consultas públicas"
+          valor={metricas.consultas_publicas.toLocaleString('es-AR')}
+        />
         <TarjetaMetrica
           icono={<IconReceipt size={22} />}
           color="blue"
-          etiqueta="Total de consultas"
+          etiqueta={origen === 'todas' ? 'Total de consultas' : `Total (${origen})`}
           valor={metricas.total_consultas.toLocaleString('es-AR')}
         />
+      </SimpleGrid>
+
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
         <TarjetaMetrica
           icono={<IconReportMoney size={22} />}
           color="grape"
@@ -96,6 +136,12 @@ export function AnalisisExploratorio() {
           valor={String(metricas.consultas_stock_critico)}
         />
       </SimpleGrid>
+
+      {metricas.total_consultas === 0 && (
+        <Alert color="blue" variant="light">
+          Todavía no hay consultas registradas con este origen. Los gráficos van a aparecer en cuanto se registre la primera.
+        </Alert>
+      )}
 
       <Card>
         <Title order={4}>Top 15 obras sociales por volumen de consultas</Title>

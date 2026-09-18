@@ -1,7 +1,7 @@
 import { ActionIcon, Badge, Button, Group, Modal, Slider, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { BancoPromocion } from '../../types/api'
@@ -9,6 +9,7 @@ import { formatoPorcentaje } from '../../utils/formato'
 
 export function BancosPromocionesAdmin() {
   const [promociones, setPromociones] = useState<BancoPromocion[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<BancoPromocion | null>(null)
   const [banco, setBanco] = useState('')
@@ -65,13 +66,23 @@ export function BancosPromocionesAdmin() {
     })
   }
 
+  const promocionesFiltradas = promociones.filter((p) => p.banco.toLowerCase().includes(busqueda.trim().toLowerCase()))
+
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={4}>Bancos / promociones ({promociones.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nueva promoción
-        </Button>
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Bancos / promociones ({promocionesFiltradas.length} de {promociones.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar banco"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nueva promoción
+          </Button>
+        </Group>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -83,7 +94,7 @@ export function BancosPromocionesAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {promociones.map((p) => (
+          {promocionesFiltradas.map((p) => (
             <Table.Tr key={p.id}>
               <Table.Td>{p.banco}</Table.Td>
               <Table.Td>

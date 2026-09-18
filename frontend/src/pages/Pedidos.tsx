@@ -17,7 +17,7 @@ import {
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconAlertCircle, IconAlertTriangle, IconBarcode, IconCheck, IconRefresh, IconShoppingCartPlus, IconTrashX } from '@tabler/icons-react'
+import { IconAlertCircle, IconAlertTriangle, IconBarcode, IconCheck, IconRefresh, IconSearch, IconShoppingCartPlus, IconTrashX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Cliente, Desglose, Pedido, Producto, Receta, ValidacionOSResultado } from '../types/api'
@@ -61,6 +61,7 @@ export function Pedidos() {
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reintentandoCae, setReintentandoCae] = useState<number | null>(null)
+  const [busquedaHistorial, setBusquedaHistorial] = useState('')
 
   function cargarCatalogos() {
     Promise.all([
@@ -189,6 +190,16 @@ export function Pedidos() {
   }, [modalAbierto, clienteSeleccionado?.id, carrito])
 
   const total = carrito.reduce((acc, l) => acc + (preciosPorProducto[l.producto.id] ?? l.producto.precio_lista) * l.cantidad, 0)
+
+  const historialFiltrado = historial.filter((p) => {
+    const q = busquedaHistorial.trim().toLowerCase()
+    if (!q) return true
+    return (
+      p.cliente_nombre.toLowerCase().includes(q) ||
+      p.obra_social.toLowerCase().includes(q) ||
+      (p.comprobante_numero ?? '').toLowerCase().includes(q)
+    )
+  })
 
   function elegirCliente(nombre: string) {
     const encontrado = clientes.find((c) => c.nombre === nombre)
@@ -406,9 +417,15 @@ export function Pedidos() {
       </Card>
 
       <Card>
-        <Title order={4} mb="md">
-          Historial de pedidos
-        </Title>
+        <Group justify="space-between" mb="md" wrap="wrap">
+          <Title order={4}>Historial de pedidos</Title>
+          <TextInput
+            placeholder="Buscar por cliente, obra social o comprobante"
+            leftSection={<IconSearch size={16} />}
+            value={busquedaHistorial}
+            onChange={(e) => setBusquedaHistorial(e.currentTarget.value)}
+          />
+        </Group>
         <Table striped highlightOnHover verticalSpacing="xs">
           <Table.Thead>
             <Table.Tr>
@@ -424,7 +441,7 @@ export function Pedidos() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {historial.map((p) => (
+            {historialFiltrado.map((p) => (
               <Table.Tr key={p.id} opacity={p.estado === 'cancelado' ? 0.5 : 1}>
                 <Table.Td>{p.comprobante_numero ?? '—'}</Table.Td>
                 <Table.Td>{new Date(p.creado_en).toLocaleString('es-AR')}</Table.Td>

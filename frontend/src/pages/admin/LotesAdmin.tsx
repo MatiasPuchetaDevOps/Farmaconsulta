@@ -1,7 +1,7 @@
 import { ActionIcon, Badge, Button, Card, Group, Modal, NumberInput, Select, SimpleGrid, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconPlus, IconTrashX } from '@tabler/icons-react'
+import { IconEdit, IconPlus, IconSearch, IconTrashX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { Lote, LoteIn, LotesAlerta, Producto } from '../../types/api'
@@ -16,6 +16,7 @@ function estadoLote(dias: number): { label: string; color: string } {
 
 export function LotesAdmin() {
   const [lotes, setLotes] = useState<Lote[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [alertas, setAlertas] = useState<LotesAlerta | null>(null)
   const [productos, setProductos] = useState<Producto[]>([])
   const [modalAbierto, setModalAbierto] = useState(false)
@@ -103,6 +104,12 @@ export function LotesAdmin() {
     })
   }
 
+  const lotesFiltrados = lotes.filter((l) => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return true
+    return l.producto_nombre.toLowerCase().includes(q) || l.numero_lote.toLowerCase().includes(q)
+  })
+
   return (
     <Stack gap="md">
       <SimpleGrid cols={{ base: 1, xs: 2 }}>
@@ -124,11 +131,19 @@ export function LotesAdmin() {
         </Card>
       </SimpleGrid>
 
-      <Group justify="space-between">
-        <Title order={4}>Lotes ({lotes.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nuevo lote
-        </Button>
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Lotes ({lotesFiltrados.length} de {lotes.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar por producto o número de lote"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nuevo lote
+          </Button>
+        </Group>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -143,7 +158,7 @@ export function LotesAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {lotes.map((l) => {
+          {lotesFiltrados.map((l) => {
             const estado = estadoLote(l.dias_para_vencer)
             return (
               <Table.Tr key={l.id}>

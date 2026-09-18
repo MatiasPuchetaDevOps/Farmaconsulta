@@ -1,36 +1,35 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core_logic.sync_precios_simulado import generar_variaciones
+from app.core_logic.ajuste_precios import generar_ajuste
 from app.database import get_db
 from app.deps import get_current_admin
-from app.models import Producto, SyncPreciosHistorial, SyncPreciosPreview, Usuario
+from app.models import AjustePrecioHistorial, AjustePrecioPreview, Producto, Usuario
 from app.repository import lockear_filas_ordenadas
-from app.schemas.sincronizacion import (
-    ItemAplicado,
-    SincronizacionHistorialOut,
-    SincronizacionPreviewIn,
-    SincronizacionPreviewOut,
-    SincronizacionResultado,
+from app.schemas.ajuste_precios import (
+    AjustePrecioHistorialOut,
+    AjustePrecioIn,
+    AjustePrecioPreviewOut,
+    AjustePrecioResultado,
+    ItemAjustado,
 )
 
-router = APIRouter(prefix="/api/sincronizacion-precios", tags=["sincronizacion-precios"], dependencies=[Depends(get_current_admin)])
+router = APIRouter(prefix="/api/ajuste-precios", tags=["ajuste-precios"], dependencies=[Depends(get_current_admin)])
 
 
-@router.post("/preview", response_model=SincronizacionPreviewOut)
-def generar_preview(payload: SincronizacionPreviewIn, db: Session = Depends(get_db), actual: Usuario = Depends(get_current_admin)):
+@router.post("/preview", response_model=AjustePrecioPreviewOut)
+def generar_preview(payload: AjustePrecioIn, db: Session = Depends(get_db), actual: Usuario = Depends(get_current_admin)):
     query = db.query(Producto).filter(Producto.activo.is_(True))
     if payload.categoria:
         query = query.filter(Producto.categoria == payload.categoria)
     productos = query.order_by(Producto.producto_nombre).all()
 
-    propuesta = generar_variaciones(productos, payload.pct_min, payload.pct_max)
+    propuesta = generar_ajuste(productos, payload.pct)
 
-    preview = SyncPreciosPreview(
+    preview = AjustePrecioPreview(
         creado_por_id=actual.id,
         filtro_categoria=payload.categoria,
-        variacion_pct_min=payload.pct_min,
-        variacion_pct_max=payload.pct_max,
+        variacion_pct=payload.pct,
         propuesta=propuesta,
     )
     db.add(preview)
@@ -39,17 +38,17 @@ def generar_preview(payload: SincronizacionPreviewIn, db: Session = Depends(get_
     return preview
 
 
-@router.get("/preview/{preview_id}", response_model=SincronizacionPreviewOut)
+@router.get("/preview/{preview_id}", response_model=AjustePrecioPreviewOut)
 def obtener_preview(preview_id: int, db: Session = Depends(get_db)):
-    preview = db.get(SyncPreciosPreview, preview_id)
+    preview = db.get(AjustePrecioPreview, preview_id)
     if preview is None:
         raise HTTPException(status_code=404, detail="Vista previa no encontrada.")
     return preview
 
 
-@router.post("/{preview_id}/confirmar", response_model=SincronizacionResultado)
-def confirmar_sincronizacion(preview_id: int, db: Session = Depends(get_db), actual: Usuario = Depends(get_current_admin)):
-    preview = db.get(SyncPreciosPreview, preview_id)
+@router.post("/{preview_id}/confirmar", response_model=AjustePrecioResultado)
+def confirmar_ajuste(preview_id: int, db: Session = Depends(get_db), actual: Usuario = Depends(get_current_admin)):
+    preview = db.get(AjustePrecioPreview, preview_id)
     if preview is None:
         raise HTTPException(status_code=404, detail="Vista previa no encontrada.")
     if preview.aplicada:
@@ -58,12 +57,12 @@ def confirmar_sincronizacion(preview_id: int, db: Session = Depends(get_db), act
     producto_ids = [item["producto_id"] for item in preview.propuesta]
     productos = lockear_filas_ordenadas(db, Producto, producto_ids)
 
-    items: list[ItemAplicado] = []
+    items: list[ItemAjustado] = []
     for propuesta_item in preview.propuesta:
         producto = productos.get(propuesta_item["producto_id"])
         if producto is None:
             items.append(
-                ItemAplicado(
+                ItemAjustado(
                     producto_id=propuesta_item["producto_id"],
                     producto_nombre=propuesta_item["producto_nombre"],
                     precio_anterior=propuesta_item["precio_anterior"],
@@ -76,7 +75,7 @@ def confirmar_sincronizacion(preview_id: int, db: Session = Depends(get_db), act
 
         if producto.precio_lista != propuesta_item["precio_anterior"]:
             items.append(
-                ItemAplicado(
+                ItemAjustado(
                     producto_id=producto.id,
                     producto_nombre=producto.producto_nombre,
                     precio_anterior=producto.precio_lista,
@@ -89,7 +88,7 @@ def confirmar_sincronizacion(preview_id: int, db: Session = Depends(get_db), act
 
         producto.precio_lista = propuesta_item["precio_nuevo"]
         items.append(
-            ItemAplicado(
+            ItemAjustado(
                 producto_id=producto.id,
                 producto_nombre=producto.producto_nombre,
                 precio_anterior=propuesta_item["precio_anterior"],
@@ -99,18 +98,17 @@ def confirmar_sincronizacion(preview_id: int, db: Session = Depends(get_db), act
         )
 
     preview.aplicada = True
-    historial = SyncPreciosHistorial(
+    historial = AjustePrecioHistorial(
         ejecutada_por_id=actual.id,
         cantidad_productos=len([i for i in items if not i.omitido]),
-        variacion_pct_min=preview.variacion_pct_min,
-        variacion_pct_max=preview.variacion_pct_max,
+        variacion_pct=preview.variacion_pct,
     )
     db.add(historial)
     db.commit()
 
-    return SincronizacionResultado(preview_id=preview.id, items=items)
+    return AjustePrecioResultado(preview_id=preview.id, items=items)
 
 
-@router.get("/historial", response_model=list[SincronizacionHistorialOut])
-def historial_sincronizaciones(limit: int = 50, db: Session = Depends(get_db)):
-    return db.query(SyncPreciosHistorial).order_by(SyncPreciosHistorial.aplicada_en.desc()).limit(limit).all()
+@router.get("/historial", response_model=list[AjustePrecioHistorialOut])
+def historial_ajustes(limit: int = 50, db: Session = Depends(get_db)):
+    return db.query(AjustePrecioHistorial).order_by(AjustePrecioHistorial.aplicada_en.desc()).limit(limit).all()

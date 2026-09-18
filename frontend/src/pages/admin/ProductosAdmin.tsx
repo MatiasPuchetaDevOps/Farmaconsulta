@@ -15,7 +15,7 @@ import {
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconPlus, IconTrashX } from '@tabler/icons-react'
+import { IconEdit, IconPlus, IconSearch, IconTrashX } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { Producto, ProductoIn } from '../../types/api'
@@ -36,6 +36,7 @@ const VACIO: ProductoIn = {
 
 export function ProductosAdmin() {
   const [productos, setProductos] = useState<Producto[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<Producto | null>(null)
   const [form, setForm] = useState<ProductoIn>(VACIO)
@@ -111,13 +112,27 @@ export function ProductosAdmin() {
     })
   }
 
+  const productosFiltrados = productos.filter((p) => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return true
+    return p.producto_nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)
+  })
+
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={4}>Productos ({productos.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nuevo producto
-        </Button>
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Productos ({productosFiltrados.length} de {productos.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar por nombre o categoría"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nuevo producto
+          </Button>
+        </Group>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -132,7 +147,7 @@ export function ProductosAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {productos.map((p) => (
+          {productosFiltrados.map((p) => (
             <Table.Tr key={p.id} opacity={p.activo ? 1 : 0.5}>
               <Table.Td>{p.producto_nombre}</Table.Td>
               <Table.Td>{p.categoria}</Table.Td>

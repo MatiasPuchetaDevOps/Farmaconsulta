@@ -1,7 +1,7 @@
 import { ActionIcon, Badge, Button, Group, Modal, Slider, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconEdit, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import type { Plan } from '../../types/api'
@@ -9,6 +9,7 @@ import { formatoPorcentaje } from '../../utils/formato'
 
 export function ObrasSocialesAdmin() {
   const [planes, setPlanes] = useState<Plan[]>([])
+  const [busqueda, setBusqueda] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [editando, setEditando] = useState<Plan | null>(null)
   const [nombre, setNombre] = useState('')
@@ -65,13 +66,23 @@ export function ObrasSocialesAdmin() {
     })
   }
 
+  const planesFiltrados = planes.filter((p) => p.obra_social.toLowerCase().includes(busqueda.trim().toLowerCase()))
+
   return (
     <Stack gap="md">
-      <Group justify="space-between">
-        <Title order={4}>Obras sociales / planes ({planes.length})</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
-          Nuevo plan
-        </Button>
+      <Group justify="space-between" wrap="wrap">
+        <Title order={4}>Obras sociales / planes ({planesFiltrados.length} de {planes.length})</Title>
+        <Group>
+          <TextInput
+            placeholder="Buscar obra social"
+            leftSection={<IconSearch size={16} />}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.currentTarget.value)}
+          />
+          <Button leftSection={<IconPlus size={16} />} onClick={abrirNuevo}>
+            Nuevo plan
+          </Button>
+        </Group>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="xs">
@@ -83,7 +94,7 @@ export function ObrasSocialesAdmin() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {planes.map((p) => (
+          {planesFiltrados.map((p) => (
             <Table.Tr key={p.id}>
               <Table.Td>{p.obra_social}</Table.Td>
               <Table.Td>

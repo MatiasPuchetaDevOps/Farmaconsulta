@@ -1,11 +1,11 @@
 import { Tabs } from '@mantine/core'
 import {
+  IconAdjustments,
   IconBuildingBank,
   IconCalendarTime,
   IconCash,
   IconClipboardPlus,
   IconFileText,
-  IconRefresh,
   IconStethoscope,
   IconUsers,
   IconUserShield,
@@ -13,6 +13,7 @@ import {
 } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { AjustePreciosAdmin } from './admin/AjustePreciosAdmin'
 import { BancosPromocionesAdmin } from './admin/BancosPromocionesAdmin'
 import { CajaAdmin } from './admin/CajaAdmin'
 import { ClientesAdmin } from './admin/ClientesAdmin'
@@ -22,7 +23,6 @@ import { ProductosAdmin } from './admin/ProductosAdmin'
 import { RecetasAdmin } from './admin/RecetasAdmin'
 import { ReglasObraSocialAdmin } from './admin/ReglasObraSocialAdmin'
 import { RegistrarConsulta } from './admin/RegistrarConsulta'
-import { SincronizarPreciosAdmin } from './admin/SincronizarPreciosAdmin'
 import { UsuariosAdmin } from './admin/UsuariosAdmin'
 
 type Seccion =
@@ -36,7 +36,7 @@ type Seccion =
   | 'lotes'
   | 'caja'
   | 'recetas'
-  | 'sincronizar-precios'
+  | 'ajuste-precios'
 
 export function Administracion() {
   const [seccion, setSeccion] = useState<Seccion>('consulta')
@@ -79,8 +79,8 @@ export function Administracion() {
           Usuarios
         </Tabs.Tab>
         {esAdmin && (
-          <Tabs.Tab value="sincronizar-precios" leftSection={<IconRefresh size={16} />}>
-            Sincronizar precios
+          <Tabs.Tab value="ajuste-precios" leftSection={<IconAdjustments size={16} />}>
+            Ajuste de precios
           </Tabs.Tab>
         )}
       </Tabs.List>
@@ -118,8 +118,8 @@ export function Administracion() {
         <UsuariosAdmin />
       </Tabs.Panel>
       {esAdmin && (
-        <Tabs.Panel value="sincronizar-precios">
-          <SincronizarPreciosAdmin />
+        <Tabs.Panel value="ajuste-precios">
+          <AjustePreciosAdmin />
         </Tabs.Panel>
       )}
     </Tabs>
