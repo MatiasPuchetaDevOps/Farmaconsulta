@@ -128,7 +128,7 @@ export function AnalisisExploratorio() {
           etiqueta="Precio de lista promedio"
           valor={formatoPesos(metricas.precio_lista_promedio)}
         />
-        <TarjetaMetrica icono={<IconCoin size={22} />} color="teal" etiqueta="Ahorro promedio" valor={formatoPesos(metricas.ahorro_promedio)} />
+        <TarjetaMetrica icono={<IconCoin size={22} />} color="teal" etiqueta="Ahorro bancario promedio" valor={formatoPesos(metricas.ahorro_promedio)} />
         <TarjetaMetrica
           icono={<IconAlertTriangle size={22} />}
           color="orange"

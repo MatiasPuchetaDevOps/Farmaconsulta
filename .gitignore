@@ -16,3 +16,6 @@ frontend/dist/
 # Office temp/lock files
 ~$*.docx
 ~$*.xlsx
+
+# Selenium IDE con credenciales reales
+pruebas_selenium/

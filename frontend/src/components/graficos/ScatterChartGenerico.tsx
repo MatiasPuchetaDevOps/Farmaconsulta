@@ -11,6 +11,13 @@ interface Props<T> {
 
 const PALETA = ['#3b82f6', '#f97316', '#10b981', '#a855f7', '#ef4444', '#06b6d4', '#eab308']
 
+// Color estable por nombre de grupo: no depende de qué grupos haya con el filtro activo
+function colorDeGrupo(grupo: string) {
+  let hash = 0
+  for (const ch of grupo) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
+  return PALETA[hash % PALETA.length]
+}
+
 export function ScatterChartGenerico<T>({ datos, claveX, claveY, claveGrupo, nombreX, nombreY }: Props<T>) {
   const grupos = Array.from(new Set(datos.map((d) => String(d[claveGrupo]))))
   // ver comentario en BarChartGenerico: el tipado de dataKey de recharts no
@@ -26,12 +33,12 @@ export function ScatterChartGenerico<T>({ datos, claveX, claveY, claveGrupo, nom
         <YAxis type="number" dataKey={y} name={nombreY} />
         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
         <Legend />
-        {grupos.map((grupo, i) => (
+        {grupos.map((grupo) => (
           <Scatter
             key={grupo}
             name={grupo}
             data={datos.filter((d) => String(d[claveGrupo]) === grupo)}
-            fill={PALETA[i % PALETA.length]}
+            fill={colorDeGrupo(grupo)}
             opacity={0.7}
           />
         ))}

@@ -23,7 +23,7 @@ export function BarChartGenerico<T>({ datos, claveCategoria, claveValor, colorBa
         {vertical ? (
           <>
             <XAxis type="number" />
-            <YAxis type="category" dataKey={categoria} width={140} />
+            <YAxis type="category" dataKey={categoria} width={140} interval={0} />
           </>
         ) : (
           <>

@@ -54,6 +54,11 @@ function etapaInfo(valor: Pedido['etapa']) {
   return ETAPAS.find((e) => e.valor === valor) ?? ETAPAS[0]
 }
 
+// 24 h explícito para que la hora no sea ambigua (sin AM/PM) según el navegador
+function formatoFechaHora(iso: string) {
+  return new Date(iso).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'medium', hour12: false })
+}
+
 function extraerDetalle(err: unknown): string | undefined {
   return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
 }
@@ -393,7 +398,7 @@ export function Pedidos() {
         {validacionOS && (
           <Alert
             color={COLOR_VALIDACION_OS[validacionOS.resultado]}
-            icon={<IconAlertTriangle size={16} />}
+            icon={validacionOS.resultado === 'aprobado' ? <IconCheck size={16} /> : <IconAlertTriangle size={16} />}
             variant="light"
             mb="md"
           >
@@ -486,7 +491,7 @@ export function Pedidos() {
             {historialFiltrado.map((p) => (
               <Table.Tr key={p.id} opacity={p.estado === 'cancelado' ? 0.5 : 1}>
                 <Table.Td>{p.comprobante_numero ?? '—'}</Table.Td>
-                <Table.Td>{new Date(p.creado_en).toLocaleString('es-AR')}</Table.Td>
+                <Table.Td>{formatoFechaHora(p.creado_en)}</Table.Td>
                 <Table.Td>{p.cliente_nombre}</Table.Td>
                 <Table.Td>{p.obra_social}</Table.Td>
                 <Table.Td>{p.metodo_pago}</Table.Td>
@@ -622,7 +627,7 @@ export function Pedidos() {
                 <Text size="xs" c="dimmed">
                   Fecha
                 </Text>
-                <Text size="sm">{new Date(pedidoSeleccionado.creado_en).toLocaleString('es-AR')}</Text>
+                <Text size="sm">{formatoFechaHora(pedidoSeleccionado.creado_en)}</Text>
               </div>
             </Group>
 
